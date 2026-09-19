@@ -84,6 +84,7 @@ class AgentSession {
           "",
           "## Environment",
           `Working directory: ${folderPath || "not set"}`,
+          `Platform: ${process.platform}. ${process.platform === "win32" ? "runCommand uses cmd.exe; use Windows-compatible commands and quoting." : "runCommand uses /bin/sh."}`,
           folderPath
             ? "Relative tool paths resolve against the working directory. Use it as basePath for fileSearch and fileGrep."
             : "No working directory is set. Do not call tools that need a path. Ask the user to select a folder.",
@@ -92,6 +93,7 @@ class AgentSession {
           "1. Locate: fileSearch finds files by name, fileGrep finds text inside files, listDirectory shows structure.",
           "2. Read: readFile the relevant files before deciding.",
           "3. Act: propose edits with updateFile or writeFile, or answer the question directly.",
+          "runCommand executes shell commands (build, test, git, etc.) and returns output plus exit code.",
           "Batch independent tool calls in one response instead of one call per response.",
           "",
           "## Edit rules",

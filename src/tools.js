@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const { exec } = require("child_process");
 const { FileFinder } = require("@ff-labs/fff-node");
 const { hunkForEdit, lineDiff } = require("./diff-system/diff");
 
@@ -383,6 +384,49 @@ function listDirectory({ dirPath } = {}, folderPath) {
   return [...dirs, ...files].join("\n");
 }
 
+/**
+ * Run a shell command in the working directory and return its output.
+ * Uses the platform default shell (cmd.exe on Windows, /bin/sh elsewhere).
+ * Stateless: each call starts a fresh shell, so cd and env changes do
+ * not persist between calls.
+ * @param {Object} args - { command }.
+ * @param {string} folderPath - The working directory.
+ * @returns {Promise<string>} Combined stdout/stderr plus the exit code.
+ */
+function runCommand({ command } = {}, folderPath) {
+  requireFolder(folderPath);
+  if (!command || !command.trim()) {
+    throw new Error("command must not be empty.");
+  }
+  return new Promise((resolve) => {
+    exec(
+      command,
+      {
+        cwd: folderPath,
+        timeout: 30000,
+        maxBuffer: 1024 * 1024,
+      },
+      (err, stdout, stderr) => {
+        const output = [stdout, stderr]
+          .filter(Boolean)
+          .join("\n")
+          .trim();
+        const clipped =
+          output.length > 20000
+            ? output.slice(0, 20000) + "\n... [output truncated]"
+            : output;
+        if (err && err.killed) {
+          return resolve(
+            `${clipped}\n\nError: command timed out after 30s and was killed.`,
+          );
+        }
+        const code = err ? err.code ?? 1 : 0;
+        resolve(`${clipped}\n(exit ${code})`.trim());
+      },
+    );
+  });
+}
+
 // Tool definitions sent to the AI
 const toolDefinitions = [
   {
@@ -531,6 +575,24 @@ const toolDefinitions = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "runCommand",
+      description:
+        "Run a shell command in the working directory and return its combined stdout/stderr plus exit code. Uses the platform default shell. Stateless: cd and environment changes do not persist between calls. 30 second timeout; long-running servers will be killed.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: {
+            type: "string",
+            description: "The shell command to run.",
+          },
+        },
+        required: ["command"],
+      },
+    },
+  },
 ];
 
 // Only include invokeSkill if skills are available
@@ -565,6 +627,7 @@ const toolFunctions = {
   listDirectory,
   updateFile,
   writeFile,
+  runCommand,
 };
 
 module.exports = {
@@ -575,6 +638,7 @@ module.exports = {
   listDirectory,
   updateFile,
   writeFile,
+  runCommand,
   writeDiff,
   webFetch,
   markFileRead,

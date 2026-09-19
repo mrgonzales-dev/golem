@@ -22,6 +22,7 @@ export function toolLabel(toolName) {
     invokeSkill: "Skill",
     updateFile: "Update",
     writeFile: "Write",
+    runCommand: "Run",
   };
   return labels[toolName] || toolName;
 }
@@ -52,6 +53,8 @@ export function formatToolArgs(toolName, args) {
       return args.filePath || "";
     case "invokeSkill":
       return args.skillName || "list";
+    case "runCommand":
+      return `$ ${args.command || ""}`;
     default:
       return JSON.stringify(args);
   }
