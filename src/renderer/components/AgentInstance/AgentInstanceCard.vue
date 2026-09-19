@@ -56,7 +56,7 @@ import { ref, computed, watch, onMounted } from "vue";
 
 import StatusBar from "./components/StatusBar.vue";
 import ChatBox from "./components/ChatBox.vue";
-import DiffBox from "./components/DiffPanel/DiffBox.vue";
+import DiffBox from "./components/diffPanel/DiffBox.vue";
 import MessageInput from "./components/MessageInput.vue";
 import QuickPromptActionToolBar from "./components/QuickPromptActionToolBar.vue";
 import { applyToolCall } from "./partials/toolCalls";
