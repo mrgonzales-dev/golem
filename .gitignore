@@ -1,5 +1,7 @@
 node_modules/
 dist/
+notes/
+notes.txt
 *.log
 .DS_Store
 api_key.json
