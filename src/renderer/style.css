@@ -1,0 +1,358 @@
+/* Digital Brutalism color scheme */
+:root {
+  --bg: #111111;
+  --bg-secondary: #181818;
+  --bg-tertiary: #242424;
+  --text: #c9c9c9;
+  --text-secondary: #8f8f8f;
+  --border: #b0b0b0;
+  --accent: #c9c9c9;
+  --accent-hover: #e0e0e0;
+  --success: #c9c9c9;
+  --danger: #7a7a7a;
+  --warning: #ababab;
+  --user-bubble-bg: #242424;
+  --user-bubble-text: #c9c9c9;
+  --ai-bubble-bg: #181818;
+  --ai-bubble-text: #c9c9c9;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Space Mono", monospace;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--bg-secondary);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Space Mono", monospace;
+}
+
+.parent {
+  display: grid;
+  grid-template-rows: 1fr;
+  gap: 8px 0;
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Space Mono", monospace;
+}
+
+.pane-resizer {
+  cursor: col-resize;
+  border-radius: 4px;
+}
+
+.pane-resizer:hover,
+.pane-resizer.active {
+  background-color: var(--bg-tertiary);
+}
+
+.parent.resizing,
+.parent.resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.statusline {
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 8px 8px 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.div1 {
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  background-color: var(--bg);
+  padding: 8px;
+  user-select: text;
+}
+
+.div2 {
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-card {
+  grid-column: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.folder-selector {
+  position: relative;
+  max-width: 200px;
+}
+
+.folder-display {
+  background-color: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.folder-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-display:hover {
+  border-color: var(--accent);
+}
+
+.folder-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.folder-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.model-dropdown {
+  position: relative;
+  max-width: 200px;
+}
+
+.model-display {
+  background-color: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.model-display:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.chevron {
+  font-size: 8px;
+  flex-shrink: 0;
+}
+
+.model-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 240px;
+  background-color: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  z-index: 100;
+  margin-top: 2px;
+}
+
+.model-search {
+  width: 100%;
+  background-color: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  outline: none;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.model-search:focus {
+  border-bottom-color: rgba(0, 0, 0, 0.4);
+}
+
+.model-search::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.model-options {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.model-option {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: "Space Mono", monospace;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-option:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.model-option.active {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.model-option.highlighted {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.model-option.active.highlighted {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.no-results {
+  padding: 8px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--bg-tertiary);
+  outline: none;
+  font-family: "Space Mono", monospace;
+  font-size: 14px;
+  background-color: var(--bg);
+  color: var(--text);
+  padding: 4px;
+  user-select: text;
+}
+
+textarea:focus {
+  border-color: var(--text-secondary);
+}
+
+button {
+  padding: 8px 16px;
+  align-self: stretch;
+  cursor: pointer;
+  background-color: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  font-family: "Space Mono", monospace;
+}
+
+button:hover {
+  background-color: var(--accent-hover);
+}
+
+.msg {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.msg-user {
+  background-color: var(--bg-tertiary);
+  color: var(--text);
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.msg-ai {
+  color: var(--ai-bubble-text);
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  display: flex;
+  gap: 8px;
+}
+
+.msg-ai-bullet {
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.msg-ai-content {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.msg-error {
+  background-color: var(--text);
+  color: var(--bg);
+}
