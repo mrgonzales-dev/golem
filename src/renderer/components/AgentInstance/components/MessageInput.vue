@@ -4,25 +4,43 @@
       <textarea
         ref="inputEl"
         v-model="text"
-        @keydown.enter.exact.prevent="send"
+        @keydown.enter.exact.prevent="onPrimary"
         placeholder="Tell me what you want..."
       ></textarea>
-      <button @click="send">Send</button>
+      <button :class="{ stop: isStopMode }" @click="onPrimary">
+        {{ isStopMode ? "Stop" : "Send" }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
-const emit = defineEmits(["send", "sendQueue"]);
+const props = defineProps({
+  busy: { type: Boolean, default: false },
+});
+
+const emit = defineEmits(["send", "sendQueue", "stop"]);
 
 const text = ref("");
 const inputEl = ref(null);
 
+// Stop mode only while the agent runs and the input is empty.
+// Typed text keeps the button as Send so the message can queue.
+const isStopMode = computed(() => props.busy && !text.value.trim());
+
 defineExpose({
   focus: () => inputEl.value?.focus(),
 });
+
+function onPrimary() {
+  if (isStopMode.value) {
+    emit("stop");
+    return;
+  }
+  send();
+}
 
 function send() {
   const value = text.value.trim();
@@ -34,3 +52,10 @@ function send() {
   text.value = "";
 }
 </script>
+
+<style scoped>
+button.stop {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+</style>

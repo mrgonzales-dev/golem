@@ -21,7 +21,7 @@
       :contextMax="contextMax"
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
     />
-    <div class="chat-row">
+    <div class="chat-row" ref="chatRow">
       <ChatBox
         class="chat-pane"
         :messages="messages"
@@ -47,8 +47,10 @@
     <QuickPromptActionToolBar @send="handleSend" />
     <MessageInput
       ref="messageInput"
+      :busy="isResponding"
       @send="handleSend"
       @sendQueue="flushQueue"
+      @stop="stopAgent"
     />
   </div>
 </template>
@@ -89,11 +91,14 @@ const selectedModel = ref("");
 // between the chat and the diff pane adjusts it.
 const diffWidth = ref(340);
 const resizing = ref(false);
+const chatRow = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
 
 const DIFF_MIN = 220;
 const DIFF_MAX = 720;
+const CHAT_MIN = 140;
+const RESIZER_W = 8;
 
 function startResize(event) {
   resizing.value = true;
@@ -105,9 +110,12 @@ function startResize(event) {
 
 function onResizeMove(event) {
   const delta = event.clientX - resizeStartX;
+  const rowW = chatRow.value?.clientWidth ?? Infinity;
+  const maxFit = Math.max(DIFF_MIN, rowW - RESIZER_W - CHAT_MIN);
   diffWidth.value = Math.min(
     Math.max(resizeStartWidth - delta, DIFF_MIN),
     DIFF_MAX,
+    maxFit,
   );
 }
 
@@ -159,6 +167,10 @@ function sendSystemMessage(text) {
 }
 
 defineExpose({ sendSystemMessage });
+
+function stopAgent() {
+  if (window.api.interruptChat) window.api.interruptChat();
+}
 
 function flushQueue() {
   const action = shouldFlush(queue.value, isResponding.value);
@@ -283,16 +295,19 @@ watch(
   flex: 1;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .chat-pane {
   flex: 1;
-  min-width: 0;
+  min-width: 140px;
   min-height: 0;
 }
 
 .diff-pane {
   flex-shrink: 0;
+  min-width: 100px;
+  max-width: calc(100% - 148px);
 }
 
 .agent-card > :deep(.quick-action-bar) {
