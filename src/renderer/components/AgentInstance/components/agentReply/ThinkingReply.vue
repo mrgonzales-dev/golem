@@ -48,6 +48,7 @@ function formatTokens(n) {
 <style scoped>
 .agent-thinking-reply {
   color: var(--text-secondary);
+  font-size: 12px;
   font-style: italic;
   padding: 4px 8px;
   margin-bottom: 8px;

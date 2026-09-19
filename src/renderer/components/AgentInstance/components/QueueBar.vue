@@ -26,7 +26,7 @@ defineEmits(["sendQueue", "interrupt"]);
 <style scoped>
 .queue-bar {
   border-top: 1px solid var(--border);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg);
   padding: 4px 8px;
   font-family: "Space Mono", monospace;
   font-size: 12px;

@@ -62,8 +62,8 @@ function handleSave({ name, text }) {
 
 <style scoped>
 .quick-action-bar {
-  border: 1px solid var(--accent);
-  background-color: var(--accent);
+  border: 1px solid var(--border);
+  background-color: var(--bg);
   height: 24px;
   display: flex;
   align-items: center;
@@ -71,6 +71,8 @@ function handleSave({ name, text }) {
   padding: 0 8px;
   gap: 4px;
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .quick-btn {
@@ -78,7 +80,7 @@ function handleSave({ name, text }) {
   font-size: 11px;
   font-family: inherit;
   background-color: transparent;
-  color: var(--bg);
+  color: var(--text-secondary);
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
@@ -86,30 +88,33 @@ function handleSave({ name, text }) {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .quick-btn:hover {
-  background-color: var(--bg);
+  background-color: var(--bg-tertiary);
   color: var(--text);
 }
 
 .quick-btn-add {
   background-color: transparent;
-  color: var(--bg);
+  color: var(--text-secondary);
   font-weight: bold;
   padding: 2px 8px;
   border: 1px solid transparent;
+  flex-shrink: 0;
 }
 
 .quick-btn-add:hover {
-  background-color: var(--bg);
+  background-color: var(--bg-tertiary);
   color: var(--text);
 }
 
 .quick-btn-separator {
   width: 1px;
   height: 16px;
-  background-color: var(--bg);
+  background-color: var(--border);
   opacity: 0.35;
   flex-shrink: 0;
 }
