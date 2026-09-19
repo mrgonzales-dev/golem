@@ -1,4 +1,4 @@
-# G-CODE
+# GOLEM
 
 AI coding agent. Proposes file changes as diffs and writes them only after approval. Reads files, searches code, and fetches context.
 
@@ -58,7 +58,7 @@ npm run start:prod
 ## Project Structure
 
 ```
-g-code/
+golem/
   main.js                          # Electron main process; registers IPC
   dev.sh                           # Dev launcher script
   vite.config.js                   # Vite config; @ path alias

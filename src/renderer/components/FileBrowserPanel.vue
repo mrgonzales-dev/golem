@@ -146,6 +146,7 @@ watch(() => props.folderPath, loadContents, { immediate: true });
   background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .panel-tabs {

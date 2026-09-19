@@ -1,5 +1,5 @@
 {
-  "name": "g-code",
+  "name": "golem",
   "version": "1.0.0",
   "description": "AI coding agent that proposes file changes for review before writing to disk",
   "main": "main.js",
