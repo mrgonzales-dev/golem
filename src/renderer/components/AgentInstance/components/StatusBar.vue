@@ -44,6 +44,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from "vue";
+import { fuzzyFilter } from "../partials/fuzzyFind";
 
 const props = defineProps({
   models: { type: Array, default: () => [] },
@@ -75,11 +76,9 @@ onUnmounted(() => {
   document.removeEventListener("click", handleOutsideClick);
 });
 
-const filteredModels = computed(() => {
-  const query = searchQuery.value.toLowerCase().trim();
-  if (!query) return props.models;
-  return props.models.filter((m) => m.toLowerCase().includes(query));
-});
+const filteredModels = computed(() =>
+  fuzzyFilter(props.models, searchQuery.value.trim()),
+);
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value;
