@@ -3,33 +3,35 @@
     <!-- drop down for model selector -->
     <div class="model-dropdown" ref="dropdownRef">
       <div class="model-display" @click="toggleDropdown">
-        {{ selectedModel || "Select a model..." }}
+        <span class="model-name">{{ selectedModel || "Select a model..." }}</span>
         <span class="chevron">{{ dropdownOpen ? "▲" : "▼" }}</span>
       </div>
-      <div v-if="dropdownOpen" class="model-list">
-        <input
-          v-model="searchQuery"
-          class="model-search"
-          placeholder="Search models..."
-          ref="searchInput"
-          @keydown="onSearchKeydown"
-        />
-        <div class="model-options">
-          <div
-            v-for="(model, i) in filteredModels"
-            :key="model"
-            class="model-option"
-            :class="{ active: model === selectedModel, highlighted: i === activeIndex }"
-            @click="pickModel(model)"
-            @mouseenter="activeIndex = i"
-          >
-            {{ model }}
-          </div>
-          <div v-if="filteredModels.length === 0" class="no-results">
-            No models found
+      <Teleport to="body">
+        <div v-if="dropdownOpen" class="model-list" ref="listRef" :style="listStyle">
+          <input
+            v-model="searchQuery"
+            class="model-search"
+            placeholder="Search models..."
+            ref="searchInput"
+            @keydown="onSearchKeydown"
+          />
+          <div class="model-options">
+            <div
+              v-for="(model, i) in filteredModels"
+              :key="model"
+              class="model-option"
+              :class="{ active: model === selectedModel, highlighted: i === activeIndex }"
+              @click="pickModel(model)"
+              @mouseenter="activeIndex = i"
+            >
+              {{ model }}
+            </div>
+            <div v-if="filteredModels.length === 0" class="no-results">
+              No models found
+            </div>
           </div>
         </div>
-      </div>
+      </Teleport>
     </div>
     <div class="ctx-meter" :title="ctxTitle">
       <div class="ctx-track">
@@ -94,9 +96,14 @@ const searchQuery = ref("");
 const searchInput = ref(null);
 const activeIndex = ref(0);
 const dropdownRef = ref(null);
+const listRef = ref(null);
+const listStyle = ref({});
 
 function handleOutsideClick(e) {
-  if (dropdownOpen.value && dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+  if (!dropdownOpen.value) return;
+  const inTrigger = dropdownRef.value && dropdownRef.value.contains(e.target);
+  const inList = listRef.value && listRef.value.contains(e.target);
+  if (!inTrigger && !inList) {
     dropdownOpen.value = false;
     searchQuery.value = "";
   }
@@ -117,6 +124,13 @@ const filteredModels = computed(() =>
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value;
   if (dropdownOpen.value) {
+    const rect = dropdownRef.value?.getBoundingClientRect();
+    if (rect) {
+      listStyle.value = {
+        top: `${rect.bottom + 2}px`,
+        left: `${rect.left}px`,
+      };
+    }
     searchQuery.value = "";
     activeIndex.value = 0;
     nextTick(() => searchInput.value?.focus());
@@ -170,10 +184,13 @@ function scrollActiveIntoView() {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .ctx-track {
-  width: 80px;
+  flex: 0 1 80px;
+  min-width: 20px;
   height: 22px;
   background-color: var(--bg-tertiary);
   overflow: hidden;
@@ -193,10 +210,12 @@ function scrollActiveIntoView() {
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .view-changes-btn {
   margin-left: auto;
+  flex-shrink: 0;
   padding: 2px 8px;
   font-size: 11px;
   font-family: inherit;

@@ -21,6 +21,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100vh;
+  overflow: hidden;
   background-color: var(--bg);
   color: var(--text);
   font-family: "Space Mono", monospace;
@@ -59,6 +60,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   background-color: var(--bg);
   color: var(--text);
   font-family: "Space Mono", monospace;
@@ -66,10 +68,12 @@ html, body {
 
 .parent {
   display: grid;
-  grid-template-rows: 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 8px 0;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   padding: 8px;
   background-color: var(--bg);
   color: var(--text);
@@ -103,7 +107,7 @@ html, body {
 
 .statusline {
   border: 1px solid var(--border);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg);
   color: var(--text-secondary);
   font-size: 12px;
   padding: 8px 8px 8px 12px;
@@ -111,6 +115,8 @@ html, body {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .div1 {
@@ -123,7 +129,7 @@ html, body {
 
 .div2 {
   border: 1px solid var(--border);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -183,6 +189,8 @@ html, body {
 .model-dropdown {
   position: relative;
   max-width: 200px;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .model-display {
@@ -193,13 +201,19 @@ html, body {
   font-size: 12px;
   padding: 2px 6px;
   cursor: pointer;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+}
+
+.model-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .model-display:hover {
@@ -212,16 +226,13 @@ html, body {
 }
 
 .model-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
   width: 240px;
   background-color: var(--accent);
   color: var(--bg);
   border: 1px solid var(--accent);
   border-radius: 4px;
-  z-index: 100;
-  margin-top: 2px;
+  z-index: 1000;
 }
 
 .model-search {

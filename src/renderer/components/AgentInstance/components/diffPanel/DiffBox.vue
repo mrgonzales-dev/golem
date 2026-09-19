@@ -69,10 +69,16 @@ const pendingCount = computed(
   padding: 4px 8px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .diff-toolbar-count {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   color: var(--warning);
 }
@@ -85,6 +91,8 @@ const pendingCount = computed(
   border-radius: 4px;
   cursor: pointer;
   background-color: transparent;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .diff-btn.approve {
