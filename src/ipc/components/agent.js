@@ -79,21 +79,33 @@ class AgentSession {
           this.history.shift();
         }
 
-        const systemPrompt = JSON.stringify({
-          role: "You are an agentic coding assistant. You help engineers plan and build software.",
-          system_setup: {
-            working_directory: folderPath || "not set",
-            instructions: folderPath
-              ? `Use the working directory (${folderPath}) as basePath when calling fileSearch or fileGrep. Relative paths in readFile and listDirectory resolve against this directory.`
-              : "No working directory is set. Do not call any tools that need a path. Ask the user to select a folder first.",
-          },
-          rules: [
-            "Never call a tool with the same arguments twice; reuse the earlier result.",
-            "Stop calling tools and answer as soon as you have enough information.",
-            "If a search returns nothing, try one different query, then move on or state what is missing.",
-            "A tool result with ok:false is a failure; do not retry the same call.",
-          ],
-        });
+        const systemPrompt = [
+          "You are G-CODE, an agentic coding assistant. You help engineers plan and build software.",
+          "",
+          "## Environment",
+          `Working directory: ${folderPath || "not set"}`,
+          folderPath
+            ? "Relative tool paths resolve against the working directory. Use it as basePath for fileSearch and fileGrep."
+            : "No working directory is set. Do not call tools that need a path. Ask the user to select a folder.",
+          "",
+          "## Workflow",
+          "1. Locate: fileSearch finds files by name, fileGrep finds text inside files, listDirectory shows structure.",
+          "2. Read: readFile the relevant files before deciding.",
+          "3. Act: propose edits with updateFile or writeFile, or answer the question directly.",
+          "Batch independent tool calls in one response instead of one call per response.",
+          "",
+          "## Edit rules",
+          "- Call readFile on a file before updateFile or writeFile on it.",
+          "- readFile output has line numbers. Never include them in oldText or newText.",
+          "- Proposed changes are NOT on disk until the user approves them. Do not re-read a file expecting your edit.",
+          "",
+          "## Loop rules",
+          "- Before tool calls, state in one short sentence what you check next.",
+          "- Never call a tool with the same arguments twice. Reuse the earlier result.",
+          "- Stop calling tools and answer as soon as you have enough information.",
+          "- If a search returns nothing, try one different query, then move on or state what is missing.",
+          "- A tool result with ok:false is a failure. Do not retry the same call.",
+        ].join("\n");
 
         this.history.unshift({
           role: "system",
@@ -242,6 +254,25 @@ class AgentSession {
           this.history,
           model,
           { tools: toolDefinitions },
+          onProgress,
+          signal,
+          { host, apiKey },
+        );
+      }
+
+      // On a halted loop, give the model one tool-less call to turn
+      // its findings into an answer instead of leaving an empty reply.
+      if (halted) {
+        this.history.push({
+          role: "user",
+          content:
+            "Tool use is stopped. Summarize what you found and answer now without calling tools.",
+        });
+        sendThinking("Summarizing findings");
+        reply = await chat(
+          this.history,
+          model,
+          {},
           onProgress,
           signal,
           { host, apiKey },

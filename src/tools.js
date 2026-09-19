@@ -227,19 +227,42 @@ function updateFile({ filePath, oldText, newText, replaceAll, reason } = {}, fol
   return `Change ${id} proposed for ${filePath}. It is queued for user review and NOT written yet. Continue with other work; do not assume it exists on disk.`;
 }
 
+// Lines returned per readFile call when no range is given. Long
+// files page through startLine/endLine instead of flooding context.
+const MAX_READ_LINES = 400;
+
 /**
- * Read a local file and return its content as text.
- * @param {string} filePath - The path to the file to read.
- * @returns {string} The file content.
+ * Read a local file and return its content with line numbers.
+ * Optional startLine/endLine page through large files.
+ * @param {Object} args - { filePath, startLine, endLine }.
+ * @param {string} folderPath - The working directory.
+ * @returns {string} The numbered file content plus a range header.
  */
-function readFile({ filePath }, folderPath) {
+function readFile({ filePath, startLine, endLine }, folderPath) {
   const resolved = resolvePath(filePath, folderPath);
   const stat = fs.statSync(resolved);
   if (stat.isDirectory()) {
     throw new Error(`Path is a directory, not a file: ${resolved}`);
   }
   markFileRead(resolved);
-  return fs.readFileSync(resolved, "utf-8");
+
+  const lines = fs.readFileSync(resolved, "utf-8").split("\n");
+  const total = lines.length;
+  const from = Math.max(1, startLine || 1);
+  let to = Math.min(total, endLine || total);
+  if (!startLine && !endLine && total > MAX_READ_LINES) {
+    to = MAX_READ_LINES;
+  }
+
+  const numbered = lines
+    .slice(from - 1, to)
+    .map((text, i) => `${from + i}\t${text}`)
+    .join("\n");
+  const footer =
+    to < total
+      ? `\n[${total - to} more lines. Call readFile with startLine=${to + 1} to continue.]`
+      : "";
+  return `${filePath} — lines ${from}-${to} of ${total}\n${numbered}${footer}`;
 }
 
 /**
@@ -338,12 +361,8 @@ function hasSkills() {
  * @returns {string} JSON array of { name, type } entries.
  */
 function listDirectory({ dirPath } = {}, folderPath) {
-  if (!dirPath) {
-    throw new Error(
-      "No directory path provided. Ask the user to select a folder first.",
-    );
-  }
-  const target = resolvePath(dirPath, folderPath);
+  requireFolder(folderPath);
+  const target = resolvePath(dirPath || ".", folderPath);
   const entries = fs.readdirSync(target, { withFileTypes: true });
 
   const dirs = [];
@@ -352,16 +371,16 @@ function listDirectory({ dirPath } = {}, folderPath) {
   for (const entry of entries) {
     if (entry.name.startsWith(".")) continue;
     if (entry.isDirectory()) {
-      dirs.push({ name: entry.name, type: "dir" });
+      dirs.push(entry.name + "/");
     } else {
-      files.push({ name: entry.name, type: "file" });
+      files.push(entry.name);
     }
   }
 
-  dirs.sort((a, b) => a.name.localeCompare(b.name));
-  files.sort((a, b) => a.name.localeCompare(b.name));
+  dirs.sort();
+  files.sort();
 
-  return JSON.stringify([...dirs, ...files], null, 2);
+  return [...dirs, ...files].join("\n");
 }
 
 // Tool definitions sent to the AI
@@ -370,13 +389,22 @@ const toolDefinitions = [
     type: "function",
     function: {
       name: "readFile",
-      description: "Read a local file and return its content as text.",
+      description:
+        "Read a file and return its content prefixed with line numbers. Long files return the first 400 lines; use startLine/endLine to page further. Never include the line numbers in updateFile oldText or newText.",
       parameters: {
         type: "object",
         properties: {
           filePath: {
             type: "string",
             description: "The path to the file to read.",
+          },
+          startLine: {
+            type: "integer",
+            description: "First line to return, 1-based. Optional.",
+          },
+          endLine: {
+            type: "integer",
+            description: "Last line to return, inclusive. Optional.",
           },
         },
         required: ["filePath"],
@@ -387,7 +415,8 @@ const toolDefinitions = [
     type: "function",
     function: {
       name: "fileSearch",
-      description: "Search for files by name with fuzzy matching.",
+      description:
+        "Find files by name with fuzzy matching. Use this to locate a file when you know part of its name.",
       parameters: {
         type: "object",
         properties: {
@@ -405,7 +434,8 @@ const toolDefinitions = [
     type: "function",
     function: {
       name: "fileGrep",
-      description: "Search file contents for a pattern.",
+      description:
+        "Search file contents for a text pattern. Returns matching lines with file paths and line numbers. Use this to find where a name, function, or string appears.",
       parameters: {
         type: "object",
         properties: {
@@ -424,7 +454,7 @@ const toolDefinitions = [
     function: {
       name: "listDirectory",
       description:
-        "List files and folders in a directory. Returns entries with type (dir/file), folders first. Filters hidden files. Requires a dirPath — do not call without one.",
+        "List the entries of a directory, folders first with a trailing slash. Omit dirPath to list the working directory root.",
       parameters: {
         type: "object",
         properties: {
