@@ -2,14 +2,26 @@
   <div class="app-shell">
     <TitleBar />
     <div class="parent" :class="{ resizing: resizing }" :style="parentStyle">
-      <FileBrowserPanel ref="fileBrowser" :folderPath="folderPath" @selectFolder="selectFolder" @settingsSaved="loadModels" />
+      <FileBrowserPanel ref="fileBrowser" :folderPath="folderPath" :collapsed="browserCollapsed" @toggleCollapse="browserCollapsed = !browserCollapsed" @selectFolder="selectFolder" @settingsSaved="loadModels" @openFile="viewingFile = $event" />
       <div
         class="pane-resizer"
         :class="{ active: resizing === 'browser' }"
         @mousedown.prevent="startResize('browser', $event)"
       ></div>
+      <CodeViewer
+        v-if="viewingFile"
+        :filePath="viewingFile"
+        @close="viewingFile = ''"
+      />
+      <div
+        v-if="viewingFile"
+        class="pane-resizer"
+        :class="{ active: resizing === 'agent' }"
+        @mousedown.prevent="startResize('agent', $event)"
+      ></div>
       <AgentInstanceCard
         ref="agentCard"
+        :style="{ gridColumn: viewingFile ? 5 : 3 }"
         :models="models"
         :modelContextMap="modelContextMap"
         :folderPath="folderPath"
@@ -27,33 +39,48 @@ import {ref, computed, onMounted, onBeforeUnmount} from "vue";
 import "./style.css";
 import FileBrowserPanel from "./components/FileBrowserPanel.vue";
 import TitleBar from "./components/TitleBar.vue";
+import CodeViewer from "./components/FilePane/CodeViewer.vue";
 import AgentInstanceCard from "./components/AgentInstance/AgentInstanceCard.vue";
 import { getProviderConfig, hasProviderConfig } from "./components/Settings/partials/providerConfig";
 
 const models = ref([]);
 const modelContextMap = ref({});
 const folderPath = ref("");
+const viewingFile = ref("");
 const diffOpen = ref(false);
 const pendingChanges = ref([]);
 const agentCard = ref(null);
 const fileBrowser = ref(null);
 
 const browserWidth = ref(200);
+const browserCollapsed = ref(false);
+const agentWidth = ref(380);
 const resizing = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
 
 const BROWSER_MIN = 140;
 const BROWSER_MAX = 480;
+const AGENT_MIN = 280;
+const AGENT_MAX = 900;
+const VIEWER_MIN = 280;
+const BROWSER_COLLAPSED = 36;
+
+const effectiveBrowserWidth = computed(() =>
+  browserCollapsed.value ? BROWSER_COLLAPSED : browserWidth.value,
+);
 
 const parentStyle = computed(() => ({
-  gridTemplateColumns: `${browserWidth.value}px 8px minmax(0, 1fr)`,
+  gridTemplateColumns: viewingFile.value
+    ? `${effectiveBrowserWidth.value}px 8px minmax(${VIEWER_MIN}px, 1fr) 8px ${agentWidth.value}px`
+    : `${effectiveBrowserWidth.value}px 8px minmax(0, 1fr)`,
 }));
 
 function startResize(pane, event) {
+  if (pane === "browser" && browserCollapsed.value) return;
   resizing.value = pane;
   resizeStartX = event.clientX;
-  resizeStartWidth = browserWidth.value;
+  resizeStartWidth = pane === "browser" ? browserWidth.value : agentWidth.value;
   window.addEventListener("mousemove", onResizeMove);
   window.addEventListener("mouseup", stopResize);
 }
@@ -61,10 +88,24 @@ function startResize(pane, event) {
 function onResizeMove(event) {
   if (!resizing.value) return;
   const delta = event.clientX - resizeStartX;
-  browserWidth.value = Math.min(
-    Math.max(resizeStartWidth + delta, BROWSER_MIN),
-    BROWSER_MAX,
-  );
+  if (resizing.value === "browser") {
+    const roomNeeded = viewingFile.value
+      ? 16 + VIEWER_MIN + AGENT_MIN
+      : AGENT_MIN;
+    browserWidth.value = Math.min(
+      Math.max(resizeStartWidth + delta, BROWSER_MIN),
+      BROWSER_MAX,
+      window.innerWidth - 16 - roomNeeded,
+    );
+  } else if (resizing.value === "agent") {
+    const roomForViewer =
+      window.innerWidth - effectiveBrowserWidth.value - 16 - VIEWER_MIN;
+    agentWidth.value = Math.min(
+      Math.max(resizeStartWidth - delta, AGENT_MIN),
+      AGENT_MAX,
+      roomForViewer,
+    );
+  }
 }
 
 function stopResize() {

@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld("api", {
   getModels: (host, apiKey) => ipcRenderer.invoke("get-models", { host, apiKey }),
   selectFolder: () => ipcRenderer.invoke("dialog:openFolder"),
   readFolderContents: (path) => ipcRenderer.invoke("folder:readContents", path),
+  readFileContent: (path) => ipcRenderer.invoke("file:readContent", path),
   interruptChat: () => ipcRenderer.invoke("agent:interrupt"),
   windowMinimize: () => ipcRenderer.invoke("window:minimize"),
   windowMaximize: () => ipcRenderer.invoke("window:maximize"),

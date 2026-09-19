@@ -5,6 +5,7 @@
       :class="{ selected: isSelected }"
       :style="{ paddingLeft: depth * 12 + 4 + 'px' }"
       @click="handleClick"
+      @dblclick="handleDblClick"
     >
       <span
         v-if="entry.isDirectory"
@@ -31,6 +32,7 @@
         :selectedFile="selectedFile"
         @select="$emit('select', $event)"
         @toggle="$emit('toggle', $event)"
+        @open="$emit('open', $event)"
       />
     </div>
   </div>
@@ -50,7 +52,7 @@ const props = defineProps({
   selectedFile: { type: String, default: "" },
 });
 
-const emit = defineEmits(["select", "toggle"]);
+const emit = defineEmits(["select", "toggle", "open"]);
 
 const fullPath = computed(() => {
   return props.basePath + "/" + props.entry.name;
@@ -65,6 +67,12 @@ function handleClick() {
     emit("toggle", { entry: props.entry, path: fullPath.value });
   } else {
     emit("select", fullPath.value);
+  }
+}
+
+function handleDblClick() {
+  if (!props.entry.isDirectory) {
+    emit("open", fullPath.value);
   }
 }
 </script>

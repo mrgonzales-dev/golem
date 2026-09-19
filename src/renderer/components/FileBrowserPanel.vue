@@ -1,7 +1,11 @@
 <template>
-  <div class="side-panel">
+  <div class="side-panel" :class="{ collapsed }">
+    <div v-if="collapsed" class="collapsed-strip" @click="$emit('toggleCollapse')" title="Expand browser">
+      <span class="collapsed-label">Browser</span>
+    </div>
+    <template v-else>
     <div class="panel-tabs">
-      <div class="panel-tab active">Browser</div>
+      <div class="panel-tab active" @click="$emit('toggleCollapse')" title="Collapse browser">Browser</div>
       <div
         class="refresh-btn"
         :class="{ disabled: !folderPath }"
@@ -39,6 +43,7 @@
           :selectedFile="selectedFile"
           @select="selectedFile = $event"
           @toggle="toggleEntry"
+          @open="$emit('openFile', $event)"
         />
       </div>
     </div>
@@ -51,6 +56,7 @@
       @close="settingsOpen = false"
       @saved="$emit('settingsSaved')"
     />
+    </template>
   </div>
 </template>
 
@@ -63,9 +69,10 @@ import folderClosedIcon from "../../icons/folder-open-closed.svg?raw";
 
 const props = defineProps({
   folderPath: { type: String, default: "" },
+  collapsed: { type: Boolean, default: false },
 });
 
-defineEmits(["selectFolder", "settingsSaved"]);
+defineEmits(["selectFolder", "settingsSaved", "openFile", "toggleCollapse"]);
 
 const entries = ref([]);
 const loading = ref(false);
@@ -143,7 +150,7 @@ watch(() => props.folderPath, loadContents, { immediate: true });
   grid-row: 1;
   grid-column: 1;
   border: 1px solid var(--border);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -164,6 +171,30 @@ watch(() => props.folderPath, loadContents, { immediate: true });
 }
 
 .panel-tab.active {
+  color: var(--text);
+}
+
+.collapsed-strip {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+  cursor: pointer;
+}
+
+.collapsed-strip:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.collapsed-label {
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+.collapsed-strip:hover .collapsed-label {
   color: var(--text);
 }
 
