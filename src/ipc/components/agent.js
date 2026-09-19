@@ -87,11 +87,12 @@ class AgentSession {
               ? `Use the working directory (${folderPath}) as basePath when calling fileSearch or fileGrep. Relative paths in readFile and listDirectory resolve against this directory.`
               : "No working directory is set. Do not call any tools that need a path. Ask the user to select a folder first.",
           },
-          tools: toolDefinitions.map((t) => ({
-            name: t.function.name,
-            description: t.function.description,
-            parameters: t.function.parameters,
-          })),
+          rules: [
+            "Never call a tool with the same arguments twice; reuse the earlier result.",
+            "Stop calling tools and answer as soon as you have enough information.",
+            "If a search returns nothing, try one different query, then move on or state what is missing.",
+            "A tool result with ok:false is a failure; do not retry the same call.",
+          ],
         });
 
         this.history.unshift({
@@ -121,7 +122,14 @@ class AgentSession {
             });
           }
         }
-        sendThinking(currentThinkingText);
+        // If the model streams reasoning, show its latest line instead
+        // of the canned thinking text.
+        const tail = progress.reasoning
+          ?.split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .pop();
+        sendThinking(tail ? tail.slice(0, 80) : currentThinkingText);
       };
 
       sendThinking(currentThinkingText);
@@ -136,13 +144,30 @@ class AgentSession {
         { host, apiKey },
       );
 
-      // Tool-call loop: execute tools, feed results back to AI
+      // Tool-call loop: execute tools, feed results back to AI.
+      // Guardrails: hard step limit, and an advisory-then-trip guard on
+      // identical calls (same tool + same arguments). Synthetic tool
+      // results keep the history valid when we halt mid-batch.
+      const MAX_STEPS = 25;
+      let stepCount = 0;
+      let halted = false;
+      // Consecutive identical calls only. A different call between two
+      // identical calls resets the streak — a re-read after exploring
+      // other files is legitimate, not a loop.
+      let lastSignature = null;
+      let dupStreak = 0;
+
       while (reply.toolCalls && reply.toolCalls.length > 0) {
         this.history.push({
           role: "assistant",
           content: reply.content || "",
           tool_calls: reply.toolCalls,
         });
+
+        // Signatures seen in this batch. A model that emits the same
+        // call twice in one response cannot have seen the result, so
+        // the copy is skipped instead of run again.
+        const batchSignatures = new Set();
 
         // Execute each tool call
         for (const toolCall of reply.toolCalls) {
@@ -155,19 +180,49 @@ class AgentSession {
           const callId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           sendToolCall(toolName, args, "running", callId);
 
-          const fn = toolFunctions[toolName];
           let result;
-          if (fn) {
-            try {
-              result = await fn(args, folderPath, toolCtx);
-              sendToolCall(toolName, args, "done", callId);
-            } catch (err) {
-              result = `Error: ${err.message}`;
-              sendToolCall(toolName, args, "error", callId);
-            }
-          } else {
-            result = `Error: Unknown tool "${toolName}"`;
+          const signature = `${toolName}\0${toolCall.function.arguments}`;
+          if (halted) {
+            result = "Stopped: the tool loop already halted. Answer with what you have.";
             sendToolCall(toolName, args, "error", callId);
+          } else if (batchSignatures.has(signature)) {
+            result = "Skipped: an identical call already ran in this batch. Use that result.";
+            sendToolCall(toolName, args, "done", callId);
+          } else {
+            batchSignatures.add(signature);
+            stepCount++;
+            dupStreak = signature === lastSignature ? dupStreak + 1 : 0;
+            lastSignature = signature;
+
+            if (stepCount > MAX_STEPS) {
+              result = `Stopped: step limit of ${MAX_STEPS} reached. Answer with what you have.`;
+              sendToolCall(toolName, args, "error", callId);
+              halted = true;
+            } else if (dupStreak >= 2) {
+              result = `Stopped: ${toolName} was called ${dupStreak + 1} times in a row with identical arguments. The result will not change. Answer with what you have.`;
+              sendToolCall(toolName, args, "error", callId);
+              halted = true;
+            } else {
+              const fn = toolFunctions[toolName];
+              if (fn) {
+                try {
+                  result = await fn(args, folderPath, toolCtx);
+                  if (dupStreak === 1) {
+                    result += "\n\nNote: this exact call already ran once and returned the same result. Do not repeat it; use this output or different arguments.";
+                  }
+                  sendToolCall(toolName, args, "done", callId);
+                } catch (err) {
+                  result = JSON.stringify({ ok: false, error: err.message });
+                  sendToolCall(toolName, args, "error", callId);
+                }
+              } else {
+                result = JSON.stringify({
+                  ok: false,
+                  error: `Unknown tool "${toolName}"`,
+                });
+                sendToolCall(toolName, args, "error", callId);
+              }
+            }
           }
 
           // Add tool result to history
@@ -177,6 +232,8 @@ class AgentSession {
             tool_call_id: toolCall.id,
           });
         }
+
+        if (halted) break;
 
         // Send tool results back to AI
         currentThinkingText = randomThinkingText();
@@ -192,9 +249,14 @@ class AgentSession {
       }
 
       // Finalize: store assistant reply and return
-      this.history.push({ role: "assistant", content: reply.content });
+      let finalReply = reply.content || "";
+      if (halted) {
+        finalReply += (finalReply ? "\n\n" : "") +
+          "[Stopped: the tool loop hit the step limit or repeated identical calls.]";
+      }
+      this.history.push({ role: "assistant", content: finalReply });
 
-      return { ok: true, reply: reply.content, usage: reply.usage };
+      return { ok: true, reply: finalReply, usage: reply.usage };
 
       // Error handling: abort vs generic failure
     } catch (err) {

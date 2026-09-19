@@ -30,6 +30,7 @@ async function chat(messages, model, options = {}, onProgress, abortSignal, conf
   });
 
   let accumulatedContent = "";
+  let accumulatedReasoning = "";
   let tokenUsage = null;
   const toolCallMap = new Map();
 
@@ -42,12 +43,19 @@ async function chat(messages, model, options = {}, onProgress, abortSignal, conf
       return;
     }
 
+    // Named handler so it can be removed when the request finishes.
+    // Without removal, each tool-loop round leaks a listener on the
+    // shared session signal (MaxListenersExceededWarning).
+    const onAbort = () => {
+      response.data.destroy();
+      reject(new Error("Aborted"));
+    };
     if (abortSignal) {
-      abortSignal.addEventListener("abort", () => {
-        response.data.destroy();
-        reject(new Error("Aborted"));
-      });
+      abortSignal.addEventListener("abort", onAbort, { once: true });
     }
+    const cleanup = () => {
+      if (abortSignal) abortSignal.removeEventListener("abort", onAbort);
+    };
 
     response.data.on("data", (chunk) => {
       sseBuffer.data += chunk.toString();
@@ -77,6 +85,11 @@ async function chat(messages, model, options = {}, onProgress, abortSignal, conf
           if (delta.content) {
             accumulatedContent += delta.content;
           }
+          if (delta.reasoning_content) {
+            accumulatedReasoning += delta.reasoning_content;
+          } else if (delta.reasoning) {
+            accumulatedReasoning += delta.reasoning;
+          }
           if (delta.tool_calls) {
             for (const toolCallDelta of delta.tool_calls) {
               const toolCallIndex = toolCallDelta.index ?? 0;
@@ -102,20 +115,32 @@ async function chat(messages, model, options = {}, onProgress, abortSignal, conf
             content: accumulatedContent,
             toolCalls: Array.from(toolCallMap.values()),
             usage: tokenUsage,
+            reasoning: accumulatedReasoning,
           });
         }
       }
     });
 
-    response.data.on("end", resolve);
-    response.data.on("error", reject);
+    response.data.on("end", () => {
+      cleanup();
+      resolve();
+    });
+    response.data.on("error", (err) => {
+      cleanup();
+      reject(err);
+    });
   });
 
   const toolCalls = Array.from(toolCallMap.values()).filter(
     (toolCallEntry) => toolCallEntry.function.name,
   );
 
-  return { content: accumulatedContent, toolCalls, usage: tokenUsage };
+  return {
+    content: accumulatedContent,
+    toolCalls,
+    usage: tokenUsage,
+    reasoning: accumulatedReasoning,
+  };
 }
 
 module.exports = { chat };
