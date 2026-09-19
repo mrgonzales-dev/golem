@@ -34,8 +34,13 @@ export function toolLabel(toolName) {
  */
 export function formatToolArgs(toolName, args) {
   switch (toolName) {
-    case "readFile":
-      return args.filePath || "";
+    case "readFile": {
+      const range =
+        args.startLine || args.endLine
+          ? `:${args.startLine || 1}-${args.endLine || "end"}`
+          : "";
+      return `${args.filePath || ""}${range}`;
+    }
     case "fileSearch":
       return `"${args.query}" in ${args.basePath}`;
     case "fileGrep":

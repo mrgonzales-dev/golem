@@ -168,6 +168,9 @@ class AgentSession {
       // other files is legitimate, not a loop.
       let lastSignature = null;
       let dupStreak = 0;
+      // Lifetime counts per signature. Non-consecutive repeats never
+      // halt the loop but get an advisory note on the second sighting.
+      const lifetimeCounts = new Map();
 
       while (reply.toolCalls && reply.toolCalls.length > 0) {
         this.history.push({
@@ -205,6 +208,8 @@ class AgentSession {
             stepCount++;
             dupStreak = signature === lastSignature ? dupStreak + 1 : 0;
             lastSignature = signature;
+            const lifetimeCount = (lifetimeCounts.get(signature) || 0) + 1;
+            lifetimeCounts.set(signature, lifetimeCount);
 
             if (stepCount > MAX_STEPS) {
               result = `Stopped: step limit of ${MAX_STEPS} reached. Answer with what you have.`;
@@ -219,7 +224,7 @@ class AgentSession {
               if (fn) {
                 try {
                   result = await fn(args, folderPath, toolCtx);
-                  if (dupStreak === 1) {
+                  if (dupStreak === 1 || lifetimeCount === 2) {
                     result += "\n\nNote: this exact call already ran once and returned the same result. Do not repeat it; use this output or different arguments.";
                   }
                   sendToolCall(toolName, args, "done", callId);
