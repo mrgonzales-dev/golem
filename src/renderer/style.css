@@ -93,9 +93,7 @@ html, body {
 }
 
 .parent.resizing,
-.parent.resizing *,
-.agent-card.resizing,
-.agent-card.resizing * {
+.parent.resizing * {
   cursor: col-resize !important;
   user-select: none !important;
 }

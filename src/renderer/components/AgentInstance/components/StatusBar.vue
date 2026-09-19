@@ -219,23 +219,21 @@ function scrollActiveIntoView() {
   padding: 2px 8px;
   font-size: 11px;
   font-family: inherit;
-  background-color: var(--accent);
-  color: var(--bg);
-  border: 1px solid var(--accent);
-  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .view-changes-btn:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
+  color: var(--text);
 }
 
 .view-changes-btn.active {
-  background-color: var(--bg-tertiary);
-  color: var(--text);
-  border-color: var(--border);
+  background-color: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 .pending-badge {

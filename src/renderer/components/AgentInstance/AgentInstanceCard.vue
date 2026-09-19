@@ -11,7 +11,7 @@
     - messages, queue, isResponding, selectedModel
 -->
 <template>
-  <div class="agent-card" :class="{ resizing }">
+  <div class="agent-card">
     <StatusBar
       :models="models"
       v-model:selectedModel="selectedModel"
@@ -21,8 +21,9 @@
       :contextMax="contextMax"
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
     />
-    <div class="chat-row" ref="chatRow">
+    <div class="chat-row">
       <ChatBox
+        v-if="!diffOpen"
         class="chat-pane"
         :messages="messages"
         :queue="queue"
@@ -30,19 +31,12 @@
         @sendQueue="flushQueue"
         @focusInput="messageInput?.focus()"
       />
-      <template v-if="diffOpen">
-        <div
-          class="pane-resizer"
-          :class="{ active: resizing }"
-          @mousedown.prevent="startResize"
-        ></div>
-        <DiffBox
-          class="diff-pane"
-          :style="{ width: diffWidth + 'px' }"
-          :changes="pendingChanges"
-          @decideAll="emit('decideAll', $event)"
-        />
-      </template>
+      <DiffBox
+        v-else
+        class="diff-pane"
+        :changes="pendingChanges"
+        @decideAll="emit('decideAll', $event)"
+      />
     </div>
     <QuickPromptActionToolBar @send="handleSend" />
     <MessageInput
@@ -86,44 +80,6 @@ const queue = ref([]);
 const messageInput = ref(null);
 const isResponding = ref(false);
 const selectedModel = ref("");
-
-// Width of the diff pane inside the card. Dragging the resizer
-// between the chat and the diff pane adjusts it.
-const diffWidth = ref(340);
-const resizing = ref(false);
-const chatRow = ref(null);
-let resizeStartX = 0;
-let resizeStartWidth = 0;
-
-const DIFF_MIN = 220;
-const DIFF_MAX = 720;
-const CHAT_MIN = 140;
-const RESIZER_W = 8;
-
-function startResize(event) {
-  resizing.value = true;
-  resizeStartX = event.clientX;
-  resizeStartWidth = diffWidth.value;
-  window.addEventListener("mousemove", onResizeMove);
-  window.addEventListener("mouseup", stopResize);
-}
-
-function onResizeMove(event) {
-  const delta = event.clientX - resizeStartX;
-  const rowW = chatRow.value?.clientWidth ?? Infinity;
-  const maxFit = Math.max(DIFF_MIN, rowW - RESIZER_W - CHAT_MIN);
-  diffWidth.value = Math.min(
-    Math.max(resizeStartWidth - delta, DIFF_MIN),
-    DIFF_MAX,
-    maxFit,
-  );
-}
-
-function stopResize() {
-  resizing.value = false;
-  window.removeEventListener("mousemove", onResizeMove);
-  window.removeEventListener("mouseup", stopResize);
-}
 
 const pendingCount = computed(
   () => props.pendingChanges.filter((c) => c.status === "pending").length,
@@ -298,16 +254,11 @@ watch(
   overflow: hidden;
 }
 
-.chat-pane {
-  flex: 1;
-  min-width: 140px;
-  min-height: 0;
-}
-
+.chat-pane,
 .diff-pane {
-  flex-shrink: 0;
-  min-width: 100px;
-  max-width: calc(100% - 148px);
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .agent-card > :deep(.quick-action-bar) {
