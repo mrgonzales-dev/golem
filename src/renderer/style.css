@@ -181,10 +181,9 @@ html, body {
 }
 
 .model-display {
-  background-color: var(--accent);
-  color: var(--bg);
-  border: 1px solid var(--accent);
-  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text);
+  border: none;
   font-family: "Space Mono", monospace;
   font-size: 12px;
   padding: 2px 6px;
@@ -199,8 +198,7 @@ html, body {
 }
 
 .model-display:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
+  color: var(--text-secondary);
 }
 
 .chevron {
@@ -258,7 +256,7 @@ html, body {
 }
 
 .model-option:hover {
-  background-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .model-option.active {
@@ -267,7 +265,7 @@ html, body {
 }
 
 .model-option.highlighted {
-  background-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .model-option.active.highlighted {
