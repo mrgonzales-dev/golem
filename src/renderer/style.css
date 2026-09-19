@@ -96,6 +96,11 @@ html, body {
   user-select: none !important;
 }
 
+::selection {
+  background: var(--text);
+  color: var(--bg);
+}
+
 .statusline {
   border: 1px solid var(--border);
   background-color: var(--bg-secondary);

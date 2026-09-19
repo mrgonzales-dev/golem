@@ -138,9 +138,4 @@ watch(
 .div1 :deep(*) {
   user-select: text;
 }
-
-.div1 :deep(::selection) {
-  background: var(--text);
-  color: var(--bg);
-}
 </style>
