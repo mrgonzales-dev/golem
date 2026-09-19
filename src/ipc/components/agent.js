@@ -110,6 +110,16 @@ class AgentSession {
       const onProgress = (progress) => {
         if (progress.usage) {
           totalTokens = progress.usage.total_tokens || totalTokens;
+          if (event.sender && event.sender.send) {
+            event.sender.send("agent:usage", {
+              promptTokens:
+                progress.usage.prompt_tokens ||
+                progress.usage.total_tokens ||
+                0,
+              completionTokens: progress.usage.completion_tokens || 0,
+              totalTokens: progress.usage.total_tokens || 0,
+            });
+          }
         }
         sendThinking(currentThinkingText);
       };

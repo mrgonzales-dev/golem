@@ -41,6 +41,11 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("agent:tool", listener);
     return () => ipcRenderer.removeListener("agent:tool", listener);
   },
+  onUsage: (callback) => {
+    const listener = (_e, data) => callback(data);
+    ipcRenderer.on("agent:usage", listener);
+    return () => ipcRenderer.removeListener("agent:usage", listener);
+  },
   onChange: (callback) => {
     const listener = (_e, data) => callback(data);
     ipcRenderer.on("agent:change", listener);

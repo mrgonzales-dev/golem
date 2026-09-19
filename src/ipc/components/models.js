@@ -10,8 +10,8 @@ module.exports = {
   name: "get-models",
   handler: async (_e, { host, apiKey }) => {
     try {
-      const models = await getModels(host, apiKey);
-      return { ok: true, models };
+      const { models, contextMap } = await getModels(host, apiKey);
+      return { ok: true, models, contextMap };
     } catch (err) {
       return { ok: false, error: err.message };
     }

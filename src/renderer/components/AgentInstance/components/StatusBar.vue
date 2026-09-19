@@ -31,6 +31,18 @@
         </div>
       </div>
     </div>
+    <div class="ctx-meter" :title="ctxTitle">
+      <div class="ctx-track">
+        <div
+          class="ctx-fill"
+          :class="{ hot: ctxPct >= 90 }"
+          :style="{ width: ctxPct + '%' }"
+        ></div>
+      </div>
+      <span class="ctx-label">
+        {{ formatTokens(contextUsed) }} / {{ formatTokens(contextMax) }}
+      </span>
+    </div>
     <button
       class="view-changes-btn"
       :class="{ active: diffOpen, 'has-pending': pendingCount > 0 }"
@@ -51,9 +63,31 @@ const props = defineProps({
   selectedModel: { type: String, default: "" },
   diffOpen: { type: Boolean, default: false },
   pendingCount: { type: Number, default: 0 },
+  contextUsed: { type: Number, default: 0 },
+  contextMax: { type: Number, default: null },
 });
 
 const emit = defineEmits(["update:selectedModel", "toggleDiff"]);
+
+// Context meter: prompt_tokens of the last request against the
+// model's context window reported by the provider.
+const ctxPct = computed(() => {
+  if (!props.contextMax) return 0;
+  return Math.min(100, (props.contextUsed / props.contextMax) * 100);
+});
+
+const ctxTitle = computed(() =>
+  props.contextMax
+    ? `${props.contextUsed.toLocaleString()} / ${props.contextMax.toLocaleString()} tokens`
+    : `${props.contextUsed.toLocaleString()} tokens used`,
+);
+
+function formatTokens(n) {
+  if (!n) return "0";
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  return String(n);
+}
 
 const dropdownOpen = ref(false);
 const searchQuery = ref("");
@@ -132,6 +166,35 @@ function scrollActiveIntoView() {
 </script>
 
 <style scoped>
+.ctx-meter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctx-track {
+  width: 80px;
+  height: 22px;
+  background-color: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.ctx-fill {
+  height: 100%;
+  background-color: var(--text);
+  transition: width 0.2s;
+}
+
+.ctx-fill.hot {
+  background-color: var(--warning);
+}
+
+.ctx-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .view-changes-btn {
   margin-left: auto;
   padding: 2px 8px;

@@ -11,6 +11,7 @@
       <AgentInstanceCard
         ref="agentCard"
         :models="models"
+        :modelContextMap="modelContextMap"
         :folderPath="folderPath"
         v-model:diffOpen="diffOpen"
         v-model:pendingChanges="pendingChanges"
@@ -30,6 +31,7 @@ import AgentInstanceCard from "./components/AgentInstance/AgentInstanceCard.vue"
 import { getProviderConfig, hasProviderConfig } from "./components/Settings/partials/providerConfig";
 
 const models = ref([]);
+const modelContextMap = ref({});
 const folderPath = ref("");
 const diffOpen = ref(false);
 const pendingChanges = ref([]);
@@ -79,6 +81,7 @@ async function loadModels() {
     const result = await window.api.getModels(host, apiKey);
     if (result.ok) {
       models.value = result.models;
+      modelContextMap.value = result.contextMap || {};
     } else {
       console.error("Failed to load models:", result.error);
     }

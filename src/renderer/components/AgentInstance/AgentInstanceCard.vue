@@ -17,6 +17,8 @@
       v-model:selectedModel="selectedModel"
       :diffOpen="diffOpen"
       :pendingCount="pendingCount"
+      :contextUsed="contextTokens"
+      :contextMax="contextMax"
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
     />
     <div class="chat-row">
@@ -65,6 +67,7 @@ import { getProviderConfig } from "../Settings/partials/providerConfig";
 
 const props = defineProps({
   models: { type: Array, default: () => [] },
+  modelContextMap: { type: Object, default: () => ({}) },
   folderPath: { type: String, default: "" },
   diffOpen: { type: Boolean, default: false },
   pendingChanges: { type: Array, default: () => [] },
@@ -116,6 +119,15 @@ function stopResize() {
 
 const pendingCount = computed(
   () => props.pendingChanges.filter((c) => c.status === "pending").length,
+);
+
+// Context meter: prompt_tokens of the last request approximates the
+// full conversation size. Max is the provider-reported context length
+// for the selected model, defaulting to 1M when unknown.
+const contextTokens = ref(0);
+
+const contextMax = computed(
+  () => props.modelContextMap[selectedModel.value] || 1000000,
 );
 
 watch(selectedModel, (newModel) => {
@@ -233,6 +245,11 @@ onMounted(() => {
         : [...props.pendingChanges, data];
       emit("update:pendingChanges", next);
       emit("update:diffOpen", true);
+    });
+  }
+  if (window.api.onUsage) {
+    window.api.onUsage(({ promptTokens }) => {
+      contextTokens.value = promptTokens;
     });
   }
   if (window.api.onChangeStatus) {
