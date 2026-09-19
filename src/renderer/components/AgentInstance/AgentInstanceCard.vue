@@ -79,7 +79,9 @@ const messages = ref([]);
 const queue = ref([]);
 const messageInput = ref(null);
 const isResponding = ref(false);
-const selectedModel = ref("");
+// Restored from localStorage; validated against the fetched model
+// list in the watcher below so a stale name falls back to models[0].
+const selectedModel = ref(localStorage.getItem("selectedModel") || "");
 
 const pendingCount = computed(
   () => props.pendingChanges.filter((c) => c.status === "pending").length,
@@ -95,12 +97,8 @@ const contextMax = computed(
 );
 
 watch(selectedModel, (newModel) => {
-  localStorage.setItem("selectedModel", newModel);
+  if (newModel) localStorage.setItem("selectedModel", newModel);
 });
-
-function loadSavedModel() {
-  selectedModel.value = localStorage.getItem("selectedModel") || "";
-}
 
 function handleSend(text) {
   const result = queueSend(queue.value, isResponding.value, text);
@@ -201,8 +199,6 @@ async function sendMessage(text, sender = "You") {
 }
 
 onMounted(() => {
-  loadSavedModel();
-
   // Change events are not tied to a single message: proposals can
   // arrive during a turn and decisions can land after it ends.
   if (window.api.onChange) {
@@ -233,7 +229,9 @@ onMounted(() => {
 watch(
   () => props.models,
   (models) => {
-    if (models.length > 0 && !selectedModel.value) {
+    if (models.length === 0) return;
+    // Keep the restored model only while the provider still lists it.
+    if (!models.includes(selectedModel.value)) {
       selectedModel.value = models[0];
     }
   },
