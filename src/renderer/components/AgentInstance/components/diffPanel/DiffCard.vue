@@ -9,6 +9,7 @@
         filePath: The file the change applies to.
         tool:     "updateFile" or "writeFile".
         status:   "pending" | "applied" | "rejected" | "stale".
+        reason:   One-sentence explanation from the model.
         hunks:    Array of { startLine, fromLine, lines: [{ type, text }] }.
       }
 -->
@@ -28,6 +29,9 @@
           :class="line.type"
         ><span class="diff-num">{{ line.num }}</span><span class="diff-sign">{{ signFor(line.type) }}</span><span class="diff-text">{{ line.text }}</span></div>
       </div>
+    </div>
+    <div v-if="change.reason" class="diff-reason">
+      {{ change.reason }}
     </div>
   </div>
 </template>
@@ -168,5 +172,15 @@ function numberedLines(hunk) {
 
 .diff-line.keep {
   color: var(--text-secondary);
+}
+
+.diff-reason {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  user-select: text;
+  line-height: 1.4;
 }
 </style>

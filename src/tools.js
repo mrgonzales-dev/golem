@@ -75,7 +75,7 @@ function fileGrep({ query, basePath }, folderPath) {
  * @param {Object} ctx - { proposeChange, findPending, mergeChange } from the agent loop.
  * @returns {string} The tool result text for the model.
  */
-function writeFile({ filePath, content } = {}, folderPath, ctx) {
+function writeFile({ filePath, content, reason } = {}, folderPath, ctx) {
   requireFolder(folderPath);
   const resolved = resolvePath(filePath, folderPath);
 
@@ -100,7 +100,7 @@ function writeFile({ filePath, content } = {}, folderPath, ctx) {
 
   const existing = ctx.findPending ? ctx.findPending(resolved) : null;
   if (existing) {
-    ctx.mergeChange(existing.id, { hunks, stagedContent: content });
+    ctx.mergeChange(existing.id, { hunks, stagedContent: content, reason });
     return `Pending change ${existing.id} for ${filePath} replaced with the new full content. Still queued for user review and NOT written yet.`;
   }
 
@@ -111,6 +111,7 @@ function writeFile({ filePath, content } = {}, folderPath, ctx) {
     hunks,
     stagedContent: content,
     stagedMtime,
+    reason,
   });
   return `Change ${id} proposed for ${filePath}. It is queued for user review and NOT written yet. Continue with other work; do not assume it exists on disk.`;
 }
@@ -123,7 +124,7 @@ function writeFile({ filePath, content } = {}, folderPath, ctx) {
  * @param {Object} ctx - { proposeChange, findPending, mergeChange } from the agent loop.
  * @returns {string} The tool result text for the model.
  */
-function updateFile({ filePath, oldText, newText, replaceAll } = {}, folderPath, ctx) {
+function updateFile({ filePath, oldText, newText, replaceAll, reason } = {}, folderPath, ctx) {
   requireFolder(folderPath);
   const resolved = resolvePath(filePath, folderPath);
 
@@ -182,6 +183,7 @@ function updateFile({ filePath, oldText, newText, replaceAll } = {}, folderPath,
     ctx.mergeChange(existing.id, {
       hunks: [...existing.hunks, ...hunks],
       stagedContent: updated,
+      reason,
     });
     return `Edits merged into pending change ${existing.id} for ${filePath}. Still queued for user review and NOT written yet.`;
   }
@@ -193,6 +195,7 @@ function updateFile({ filePath, oldText, newText, replaceAll } = {}, folderPath,
     hunks,
     stagedContent: updated,
     stagedMtime,
+    reason,
   });
   return `Change ${id} proposed for ${filePath}. It is queued for user review and NOT written yet. Continue with other work; do not assume it exists on disk.`;
 }
@@ -434,8 +437,13 @@ const toolDefinitions = [
             description:
               "Replace every occurrence of oldText. Default false.",
           },
+          reason: {
+            type: "string",
+            description:
+              "One sentence for the user explaining what this change does and why. Shown on the diff card.",
+          },
         },
-        required: ["filePath", "oldText", "newText"],
+        required: ["filePath", "oldText", "newText", "reason"],
       },
     },
   },
@@ -456,8 +464,13 @@ const toolDefinitions = [
             type: "string",
             description: "The full content to write.",
           },
+          reason: {
+            type: "string",
+            description:
+              "One sentence for the user explaining what this change does and why. Shown on the diff card.",
+          },
         },
-        required: ["filePath", "content"],
+        required: ["filePath", "content", "reason"],
       },
     },
   },
