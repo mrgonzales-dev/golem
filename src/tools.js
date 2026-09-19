@@ -4,7 +4,63 @@ const axios = require("axios");
 const { FileFinder } = require("@ff-labs/fff-node");
 const { hunkForEdit, lineDiff } = require("./diff-system/diff");
 
+// One cached FileFinder per basePath. The native scan is async, so the
+// first search must await waitForScan before the index has any files.
 let finder = null;
+let finderBase = null;
+let scanReady = null;
+
+async function getFinder(basePath, folderPath) {
+  const resolvedBase = resolvePath(basePath, folderPath);
+  if (finder && finderBase === resolvedBase && !finder.isDestroyed) {
+    await scanReady;
+    return finder;
+  }
+  if (finder) finder.destroy();
+
+  const result = FileFinder.create({ basePath: resolvedBase, aiMode: true });
+  if (!result.ok) throw new Error(result.error);
+
+  finder = result.value;
+  finderBase = resolvedBase;
+  scanReady = finder.waitForScan(15000);
+  await scanReady;
+  return finder;
+}
+
+async function fileSearch({ query, basePath }, folderPath) {
+  requireFolder(folderPath);
+  const f = await getFinder(basePath, folderPath);
+  const result = f.fileSearch(query, { pageSize: 20 });
+  if (!result.ok) throw new Error(result.error);
+
+  const paths = result.value.items.map((item) => item.relativePath);
+  return JSON.stringify({ totalMatched: result.value.totalMatched, paths });
+}
+
+async function fileGrep({ query, basePath }, folderPath) {
+  requireFolder(folderPath);
+  const f = await getFinder(basePath, folderPath);
+  const result = f.grep(query, {
+    mode: "plain",
+    smartCase: true,
+    beforeContext: 1,
+    afterContext: 1,
+    classifyDefinitions: true,
+  });
+  if (!result.ok) throw new Error(result.error);
+
+  const hits = result.value.items.map((item) => ({
+    file: item.relativePath,
+    line: item.lineNumber,
+    text: item.lineContent.trim(),
+  }));
+  return JSON.stringify({
+    totalMatched: result.value.totalMatched,
+    filesSearched: result.value.totalFilesSearched,
+    hits,
+  });
+}
 
 // Tracks files read via readFile: path -> { mtimeMs }. Write tools
 // refuse to touch a file the model has not read, and the approval
@@ -36,36 +92,7 @@ function requireFolder(folderPath) {
   }
 }
 
-function fileSearch({ query, basePath }, folderPath) {
-  requireFolder(folderPath);
-  if (finder) finder.destroy();
 
-  const resolvedBase = resolvePath(basePath, folderPath);
-  const result = FileFinder.create({ basePath: resolvedBase, aiMode: true });
-  if (!result.ok) throw new Error(result.error);
-
-  finder = result.value;
-  return finder.fileSearch(query, { pageSize: 20 });
-}
-
-function fileGrep({ query, basePath }, folderPath) {
-  requireFolder(folderPath);
-  if (finder) finder.destroy();
-
-  const resolvedBase = resolvePath(basePath, folderPath);
-  const result = FileFinder.create({ basePath: resolvedBase, aiMode: true });
-  if (!result.ok) throw new Error(result.error);
-
-  finder = result.value;
-  const hits = finder.grep(query, {
-    mode: "plain",
-    smartCase: true,
-    beforeContext: 1,
-    afterContext: 1,
-    classifyDefinitions: true,
-  });
-  return hits;
-}
 
 /**
  * Propose overwriting or creating a file. The content is staged in
