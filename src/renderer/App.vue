@@ -14,15 +14,8 @@
         :folderPath="folderPath"
         v-model:diffOpen="diffOpen"
         v-model:pendingChanges="pendingChanges"
+        @decideAll="handleDecideAll"
       />
-      <template v-if="diffOpen">
-        <div
-          class="pane-resizer"
-          :class="{ active: resizing === 'diff' }"
-          @mousedown.prevent="startResize('diff', $event)"
-        ></div>
-        <DiffBox :changes="pendingChanges" @decideAll="handleDecideAll" />
-      </template>
     </div>
   </div>
 </template>
@@ -34,7 +27,6 @@ import "./style.css";
 import FileBrowserPanel from "./components/FileBrowserPanel.vue";
 import TitleBar from "./components/TitleBar.vue";
 import AgentInstanceCard from "./components/AgentInstance/AgentInstanceCard.vue";
-import DiffBox from "./components/DiffPanel/DiffBox.vue";
 import { getProviderConfig, hasProviderConfig } from "./components/Settings/partials/providerConfig";
 
 const models = ref([]);
@@ -45,43 +37,32 @@ const agentCard = ref(null);
 const fileBrowser = ref(null);
 
 const browserWidth = ref(200);
-const diffWidth = ref(340);
 const resizing = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
 
-const PANE_LIMITS = {
-  browser: { min: 140, max: 480 },
-  diff: { min: 220, max: 720 },
-};
+const BROWSER_MIN = 140;
+const BROWSER_MAX = 480;
 
 const parentStyle = computed(() => ({
-  gridTemplateColumns: diffOpen.value
-    ? `${browserWidth.value}px 8px minmax(0, 1fr) 8px ${diffWidth.value}px`
-    : `${browserWidth.value}px 8px minmax(0, 1fr)`,
+  gridTemplateColumns: `${browserWidth.value}px 8px minmax(0, 1fr)`,
 }));
 
 function startResize(pane, event) {
   resizing.value = pane;
   resizeStartX = event.clientX;
-  resizeStartWidth = pane === "browser" ? browserWidth.value : diffWidth.value;
+  resizeStartWidth = browserWidth.value;
   window.addEventListener("mousemove", onResizeMove);
   window.addEventListener("mouseup", stopResize);
 }
 
 function onResizeMove(event) {
   if (!resizing.value) return;
-  const { min, max } = PANE_LIMITS[resizing.value];
   const delta = event.clientX - resizeStartX;
-  const next = resizing.value === "browser"
-    ? resizeStartWidth + delta
-    : resizeStartWidth - delta;
-  const clamped = Math.min(Math.max(next, min), max);
-  if (resizing.value === "browser") {
-    browserWidth.value = clamped;
-  } else {
-    diffWidth.value = clamped;
-  }
+  browserWidth.value = Math.min(
+    Math.max(resizeStartWidth + delta, BROWSER_MIN),
+    BROWSER_MAX,
+  );
 }
 
 function stopResize() {

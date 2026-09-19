@@ -11,7 +11,7 @@
     - messages, queue, isResponding, selectedModel
 -->
 <template>
-  <div class="agent-card">
+  <div class="agent-card" :class="{ resizing }">
     <StatusBar
       :models="models"
       v-model:selectedModel="selectedModel"
@@ -19,13 +19,29 @@
       :pendingCount="pendingCount"
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
     />
-    <ChatBox
-      :messages="messages"
-      :queue="queue"
-      :isResponding="isResponding"
-      @sendQueue="flushQueue"
-      @focusInput="messageInput?.focus()"
-    />
+    <div class="chat-row">
+      <ChatBox
+        class="chat-pane"
+        :messages="messages"
+        :queue="queue"
+        :isResponding="isResponding"
+        @sendQueue="flushQueue"
+        @focusInput="messageInput?.focus()"
+      />
+      <template v-if="diffOpen">
+        <div
+          class="pane-resizer"
+          :class="{ active: resizing }"
+          @mousedown.prevent="startResize"
+        ></div>
+        <DiffBox
+          class="diff-pane"
+          :style="{ width: diffWidth + 'px' }"
+          :changes="pendingChanges"
+          @decideAll="emit('decideAll', $event)"
+        />
+      </template>
+    </div>
     <QuickPromptActionToolBar @send="handleSend" />
     <MessageInput
       ref="messageInput"
@@ -40,6 +56,7 @@ import { ref, computed, watch, onMounted } from "vue";
 
 import StatusBar from "./components/StatusBar.vue";
 import ChatBox from "./components/ChatBox.vue";
+import DiffBox from "./components/DiffPanel/DiffBox.vue";
 import MessageInput from "./components/MessageInput.vue";
 import QuickPromptActionToolBar from "./components/QuickPromptActionToolBar.vue";
 import { applyToolCall } from "./partials/toolCalls";
@@ -53,13 +70,49 @@ const props = defineProps({
   pendingChanges: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["update:diffOpen", "update:pendingChanges"]);
+const emit = defineEmits([
+  "update:diffOpen",
+  "update:pendingChanges",
+  "decideAll",
+]);
 
 const messages = ref([]);
 const queue = ref([]);
 const messageInput = ref(null);
 const isResponding = ref(false);
 const selectedModel = ref("");
+
+// Width of the diff pane inside the card. Dragging the resizer
+// between the chat and the diff pane adjusts it.
+const diffWidth = ref(340);
+const resizing = ref(false);
+let resizeStartX = 0;
+let resizeStartWidth = 0;
+
+const DIFF_MIN = 220;
+const DIFF_MAX = 720;
+
+function startResize(event) {
+  resizing.value = true;
+  resizeStartX = event.clientX;
+  resizeStartWidth = diffWidth.value;
+  window.addEventListener("mousemove", onResizeMove);
+  window.addEventListener("mouseup", stopResize);
+}
+
+function onResizeMove(event) {
+  const delta = event.clientX - resizeStartX;
+  diffWidth.value = Math.min(
+    Math.max(resizeStartWidth - delta, DIFF_MIN),
+    DIFF_MAX,
+  );
+}
+
+function stopResize() {
+  resizing.value = false;
+  window.removeEventListener("mousemove", onResizeMove);
+  window.removeEventListener("mouseup", stopResize);
+}
 
 const pendingCount = computed(
   () => props.pendingChanges.filter((c) => c.status === "pending").length,
@@ -208,9 +261,21 @@ watch(
   flex-shrink: 0;
 }
 
-.agent-card > :deep(.div1) {
+.chat-row {
+  display: flex;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+}
+
+.chat-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.diff-pane {
+  flex-shrink: 0;
 }
 
 .agent-card > :deep(.quick-action-bar) {

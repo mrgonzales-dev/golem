@@ -1,8 +1,8 @@
 <!--
   DiffBox.vue
   Shows pending file changes proposed by the agent as diff cards.
-  Renders as a side panel beside the agent instance, toggled by
-  the "View Changes" button in StatusBar.
+  Renders inside the agent card beside the chat, toggled by
+  the "Diff" button in StatusBar.
 
   Props:
     - changes: Array of change objects (see DiffCard.vue for shape).
@@ -43,11 +43,11 @@ const pendingCount = computed(
 
 <style scoped>
 .diff-box {
-  grid-column: 5;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .diff-scroll {

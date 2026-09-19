@@ -77,6 +77,8 @@ html, body {
 }
 
 .pane-resizer {
+  width: 8px;
+  flex-shrink: 0;
   cursor: col-resize;
   border-radius: 4px;
 }
@@ -87,7 +89,9 @@ html, body {
 }
 
 .parent.resizing,
-.parent.resizing * {
+.parent.resizing *,
+.agent-card.resizing,
+.agent-card.resizing * {
   cursor: col-resize !important;
   user-select: none !important;
 }
