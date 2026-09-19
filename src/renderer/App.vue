@@ -13,15 +13,9 @@
         :filePath="viewingFile"
         @close="viewingFile = ''"
       />
-      <div
-        v-if="viewingFile"
-        class="pane-resizer"
-        :class="{ active: resizing === 'agent' }"
-        @mousedown.prevent="startResize('agent', $event)"
-      ></div>
       <AgentInstanceCard
+        v-show="!viewingFile"
         ref="agentCard"
-        :style="{ gridColumn: viewingFile ? 5 : 3 }"
         :models="models"
         :modelContextMap="modelContextMap"
         :folderPath="folderPath"
@@ -54,7 +48,6 @@ const fileBrowser = ref(null);
 
 const browserWidth = ref(200);
 const browserCollapsed = ref(false);
-const agentWidth = ref(380);
 const resizing = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
@@ -62,7 +55,6 @@ let resizeStartWidth = 0;
 const BROWSER_MIN = 140;
 const BROWSER_MAX = 480;
 const AGENT_MIN = 280;
-const AGENT_MAX = 900;
 const VIEWER_MIN = 280;
 const BROWSER_COLLAPSED = 36;
 
@@ -72,7 +64,7 @@ const effectiveBrowserWidth = computed(() =>
 
 const parentStyle = computed(() => ({
   gridTemplateColumns: viewingFile.value
-    ? `${effectiveBrowserWidth.value}px 8px minmax(${VIEWER_MIN}px, 1fr) 8px ${agentWidth.value}px`
+    ? `${effectiveBrowserWidth.value}px 8px minmax(${VIEWER_MIN}px, 1fr)`
     : `${effectiveBrowserWidth.value}px 8px minmax(0, 1fr)`,
 }));
 
@@ -80,7 +72,7 @@ function startResize(pane, event) {
   if (pane === "browser" && browserCollapsed.value) return;
   resizing.value = pane;
   resizeStartX = event.clientX;
-  resizeStartWidth = pane === "browser" ? browserWidth.value : agentWidth.value;
+  resizeStartWidth = browserWidth.value;
   window.addEventListener("mousemove", onResizeMove);
   window.addEventListener("mouseup", stopResize);
 }
@@ -89,21 +81,11 @@ function onResizeMove(event) {
   if (!resizing.value) return;
   const delta = event.clientX - resizeStartX;
   if (resizing.value === "browser") {
-    const roomNeeded = viewingFile.value
-      ? 16 + VIEWER_MIN + AGENT_MIN
-      : AGENT_MIN;
+    const roomNeeded = viewingFile.value ? VIEWER_MIN : AGENT_MIN;
     browserWidth.value = Math.min(
       Math.max(resizeStartWidth + delta, BROWSER_MIN),
       BROWSER_MAX,
       window.innerWidth - 16 - roomNeeded,
-    );
-  } else if (resizing.value === "agent") {
-    const roomForViewer =
-      window.innerWidth - effectiveBrowserWidth.value - 16 - VIEWER_MIN;
-    agentWidth.value = Math.min(
-      Math.max(resizeStartWidth - delta, AGENT_MIN),
-      AGENT_MAX,
-      roomForViewer,
     );
   }
 }
