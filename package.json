@@ -1,7 +1,7 @@
 {
-  "name": "docuharness",
+  "name": "g-code",
   "version": "1.0.0",
-  "description": "ai harness but only for documentation and help not writing code!",
+  "description": "AI coding agent that proposes file changes for review before writing to disk",
   "main": "main.js",
   "scripts": {
     "dev": "vite",

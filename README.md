@@ -1,6 +1,14 @@
-# DocuHarness
+# G-CODE
 
-AI harness for documentation. Reads docs, fetches web pages, shows changes in diff format. Does not write code.
+AI coding agent. Proposes file changes as diffs and writes them only after approval. Reads files, searches code, and fetches context.
+
+## How it works
+
+1. The agent calls `updateFile` or `writeFile`.
+2. The change is staged in memory as a diff card.
+3. The card opens in the diff pane for review.
+4. Approve writes the file. Reject discards it.
+5. Edits to the same file merge into one card.
 
 ## Prerequisites
 
@@ -50,60 +58,71 @@ npm run start:prod
 ## Project Structure
 
 ```
-docuHarness/
+g-code/
   main.js                          # Electron main process; registers IPC
   dev.sh                           # Dev launcher script
   vite.config.js                   # Vite config; @ path alias
   src/
     config.js                      # API config and model loader
     preload.js                     # IPC bridge to renderer
-    tools.js                        # Tool definitions (fileSearch, fileGrep, listDirectory, invokeSkill)
-    thinking-texts.js               # Tech jargon thinking verbs
+    tools.js                       # Tool definitions (readFile, fileSearch, fileGrep, listDirectory, updateFile, writeFile, invokeSkill)
+    thinking-texts.js              # Thinking status text
+    diff-system/
+      diff.js                      # Hunk and line diff builders
+      pendingChanges.js            # Pending proposal store; guarded approval writes
     ai-bridge/
-      index.js                      # OpenAI-compatible streaming client
+      index.js                     # OpenAI-compatible streaming client
     ipc/
-      index.js                      # IPC channel registry
+      index.js                     # IPC channel registry
       components/
-        agent.js                    # AgentSession; chat handler
-        dialog.js                    # Native dialog IPC
-        folder.js                    # Folder read IPC
-        models.js                    # Model list IPC
-    default_skills/                 # Skill markdown files (empty)
-    icons/                          # SVG icons
+        agent.js                   # AgentSession; chat handler
+        changes.js                 # change:decide approval handler
+        dialog.js                  # Native dialog IPC
+        folder.js                  # Folder read IPC
+        models.js                  # Model list IPC
+        settings.js                # Settings IPC
+    default_skills/                # Skill markdown files
+    icons/                         # SVG icons
     renderer/
-      App.vue                       # Root Vue component
-      main.js                       # Vue mount
-      style.css                     # Global styles
-      index.html                    # Entry HTML
+      App.vue                      # Root Vue component; pane layout
+      main.js                      # Vue mount; font imports
+      style.css                    # Global styles and theme tokens
+      index.html                   # Entry HTML
       components/
-        AgentReply.vue
-        ChatBox.vue
-        FileBrowserEntry.vue
-        FileBrowserPanel.vue
-        MessageInput.vue
-        QueueBar.vue
-        QuickPromptActionToolBar.vue
-        StatusBar.vue
-        UserMessage.vue
-        agentReply/
-          GrepReply.vue
-          InvokeSkillReply.vue
-          ListDirectoryReply.vue
-          ReadingFileReply.vue
-          ReadingReply.vue
-          SearchingFileReply.vue
-          ThinkingReply.vue
+        FileBrowserPanel.vue       # File tree pane
+        FileBrowserEntry.vue       # Single tree entry
+        TitleBar.vue               # Window frame bar
+        AgentInstance/
+          AgentInstanceCard.vue    # Agent card; message state and IPC wiring
+          partials/
+            agentQueue.js          # Message queue logic
+            quickPrompts.js        # Quick prompt definitions
+            toolCalls.js           # Tool call message grouping
+          components/
+            ChatBox.vue            # Message list
+            MessageInput.vue       # Input textarea
+            StatusBar.vue          # Model selector and diff toggle
+            QueueBar.vue           # Queued message bar
+            QuickPromptActionToolBar.vue
+            QuickPromptModal.vue
+            AgentReply.vue         # Markdown reply renderer
+            UserMessage.vue
+            agentReply/
+              AgentError.vue
+              AgentToolCall.vue
+              ThinkingReply.vue
+        DiffPanel/
+          DiffBox.vue              # Diff pane; global approve/reject
+          DiffCard.vue             # Single change card with line numbers
+        Settings/
+          SettingsModal.vue        # API host and key modal
+          partials/
+            providerConfig.js      # Provider config storage
   config/
     api_key.example.json           # Example API config
     api_key.sample.json            # Sample API config
   test/
     setup.js                       # Vitest setup; @ alias
     test-config.js                 # API connection test
-    testChatHandlerMemory.test.ts
-    testChatMemory.test.ts
-    testReadFile.test.ts
-    testReadTool.test.ts
-    testTalkToAgent.test.ts
-    testToolCalling.test.ts
-    testToolRegistry.test.ts
+    test*.test.ts                  # Unit tests
 ```
