@@ -33,7 +33,7 @@
         </div>
       </Teleport>
     </div>
-    <div class="ctx-meter" :title="ctxTitle">
+    <div class="ctx-meter">
       <div class="ctx-track">
         <div
           class="ctx-fill"
@@ -78,12 +78,6 @@ const ctxPct = computed(() => {
   return Math.min(100, (props.contextUsed / props.contextMax) * 100);
 });
 
-const ctxTitle = computed(() =>
-  props.contextMax
-    ? `${props.contextUsed.toLocaleString()} / ${props.contextMax.toLocaleString()} tokens`
-    : `${props.contextUsed.toLocaleString()} tokens used`,
-);
-
 function formatTokens(n) {
   if (!n) return "0";
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
@@ -117,9 +111,15 @@ onUnmounted(() => {
   document.removeEventListener("click", handleOutsideClick);
 });
 
-const filteredModels = computed(() =>
-  fuzzyFilter(props.models, searchQuery.value.trim()),
-);
+const filteredModels = computed(() => {
+  const list = fuzzyFilter(props.models, searchQuery.value.trim());
+  const idx = list.indexOf(props.selectedModel);
+  if (idx > 0) {
+    list.splice(idx, 1);
+    list.unshift(props.selectedModel);
+  }
+  return list;
+});
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value;

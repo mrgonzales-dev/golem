@@ -1,26 +1,25 @@
 <template>
   <div class="side-panel" :class="{ collapsed }">
-    <div v-if="collapsed" class="collapsed-strip" @click="$emit('toggleCollapse')" title="Expand browser">
+    <div v-if="collapsed" class="collapsed-strip" @click="$emit('toggleCollapse')">
       <span class="collapsed-label">Browser</span>
     </div>
     <template v-else>
     <div class="panel-tabs">
-      <div class="panel-tab active" @click="$emit('toggleCollapse')" title="Collapse browser">Browser</div>
+      <div class="panel-tab active" @click="$emit('toggleCollapse')">Browser</div>
       <div
         class="refresh-btn"
         :class="{ disabled: !folderPath }"
         @click="refresh"
-        title="Refresh"
       >
         <span class="refresh-icon">&#8635;</span>
       </div>
-      <div class="folder-picker" @click="$emit('selectFolder')" :title="folderPath || 'Select folder'">
+      <div class="folder-picker" @click="$emit('selectFolder')">
         <span v-if="folderPath" class="folder-icon" v-html="folderOpenIcon"></span>
         <span v-else class="folder-icon" v-html="folderClosedIcon"></span>
       </div>
     </div>
     <div class="panel-content">
-      <div v-if="folderPath" class="tree-root" :title="folderPath">
+      <div v-if="folderPath" class="tree-root">
         <span class="tree-root-icon" v-html="folderOpenIcon"></span>
         <span class="tree-root-name">{{ rootName }}</span>
       </div>

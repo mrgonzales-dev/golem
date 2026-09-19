@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, onMounted } from "vue";
 import UserMessage from "./UserMessage.vue";
 import AgentReply from "./AgentReply.vue";
 import ThinkingReply from "./agentReply/ThinkingReply.vue";
@@ -102,6 +102,10 @@ function scrollToBottom() {
   if (!el) return;
   el.scrollTop = el.scrollHeight;
 }
+
+onMounted(() => {
+  nextTick(scrollToBottom);
+});
 
 watch(
   () => props.messages.length,

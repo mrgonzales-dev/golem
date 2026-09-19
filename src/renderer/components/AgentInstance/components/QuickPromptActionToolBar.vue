@@ -19,7 +19,6 @@
       :key="prompt.id"
       class="quick-btn"
       @click="$emit('send', prompt.text)"
-      :title="prompt.text"
     >{{ prompt.name }}</button>
     <span class="quick-btn-separator quick-btn-end"></span>
     <button class="quick-btn quick-btn-add" @click="openModal">+</button>

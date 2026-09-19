@@ -1,9 +1,9 @@
 <template>
   <div class="code-viewer">
     <div class="cv-header">
-      <span class="cv-filename" :title="filePath">{{ fileName }}</span>
+      <span class="cv-filename">{{ fileName }}</span>
       <span v-if="truncated" class="cv-flag">truncated</span>
-      <button class="cv-close" @click="$emit('close')" title="Close">×</button>
+      <button class="cv-close" @click="$emit('close')">×</button>
     </div>
     <div class="cv-body">
       <div v-if="loading" class="cv-empty">Loading...</div>

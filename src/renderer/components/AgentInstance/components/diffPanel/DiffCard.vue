@@ -16,7 +16,7 @@
 <template>
   <div class="diff-card">
     <div class="diff-card-header">
-      <span class="diff-card-path" :title="change.filePath">{{ fileName }}</span>
+      <span class="diff-card-path">{{ fileName }}</span>
       <span class="diff-card-status" :class="change.status">{{ change.status }}</span>
     </div>
     <div v-for="(hunk, h) in change.hunks" :key="h" class="diff-hunk">
