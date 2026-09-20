@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { getModelMeta } = require("@/models-dev");
 
 // LM Studio's /api/v0/models returns max_context_length per model.
 // Other providers do not have it — the request fails and the map
@@ -24,8 +25,15 @@ async function getModels(host, apiKey) {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
   const models = res.data.data.map((m) => m.id);
-  const contextMap = await getContextLengths(host, apiKey);
-  return { models, contextMap };
+  const [contextMap, metaMap] = await Promise.all([
+    getContextLengths(host, apiKey),
+    getModelMeta(models),
+  ]);
+  // The provider's own report wins; models.dev fills the gaps.
+  for (const [id, meta] of Object.entries(metaMap)) {
+    if (!contextMap[id] && meta.context) contextMap[id] = meta.context;
+  }
+  return { models, contextMap, metaMap };
 }
 
 module.exports = { getModels };

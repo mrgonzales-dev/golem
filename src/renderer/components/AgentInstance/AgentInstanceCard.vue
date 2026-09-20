@@ -53,6 +53,7 @@
       :busy="isResponding"
       :modelName="selectedModel"
       :effort="thinkingEffort"
+      :effortOptions="effortOptions"
       @update:effort="thinkingEffort = $event"
       @send="handleSend"
       @sendQueue="flushQueue"
@@ -77,6 +78,7 @@ import { getProviderConfig } from "../Settings/partials/providerConfig";
 const props = defineProps({
   models: { type: Array, default: () => [] },
   modelContextMap: { type: Object, default: () => ({}) },
+  modelMetaMap: { type: Object, default: () => ({}) },
   folderPath: { type: String, default: "" },
   diffOpen: { type: Boolean, default: false },
   pendingChanges: { type: Array, default: () => [] },
@@ -106,13 +108,27 @@ const pendingCount = computed(
 );
 
 // Context meter: prompt_tokens of the last request approximates the
-// full conversation size. Max is the provider-reported context length
-// for the selected model, defaulting to 1M when unknown.
+// full conversation size. Max comes from the provider report or the
+// models.dev catalog; 1M is only the fallback when both stay silent.
 const contextTokens = ref(0);
 
 const contextMax = computed(
   () => props.modelContextMap[selectedModel.value] || 1000000,
 );
+
+// Effort options follow the model's catalog entry. reasoning:false
+// leaves only Off; unknown models keep the permissive default and
+// the chat retry strips the field if the provider rejects it.
+const effortOptions = computed(() => {
+  const meta = props.modelMetaMap[selectedModel.value];
+  if (!meta) return ["off", "low", "medium", "high"];
+  if (meta.reasoning === false) return ["off"];
+  return ["off", ...(meta.efforts.length ? meta.efforts : ["low", "medium", "high"])];
+});
+
+watch(effortOptions, (options) => {
+  if (!options.includes(thinkingEffort.value)) thinkingEffort.value = "off";
+});
 
 watch(selectedModel, (newModel) => {
   if (newModel) localStorage.setItem("selectedModel", newModel);

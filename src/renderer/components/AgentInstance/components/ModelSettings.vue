@@ -1,18 +1,19 @@
 <template>
   <div class="model-settings">
     <span class="ms-model">{{ modelName || "No model" }}</span>
-    <label class="ms-label">Thinking</label>
-    <select
-      class="ms-select"
-      :value="effort"
-      @change="$emit('update:effort', $event.target.value)"
-    >
-      <option value="off">Off</option>
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
-    </select>
-    <span class="ms-arrow">▼</span>
+    <template v-if="effortOptions.length > 1">
+      <label class="ms-label">Thinking</label>
+      <select
+        class="ms-select"
+        :value="effort"
+        @change="$emit('update:effort', $event.target.value)"
+      >
+        <option v-for="o in effortOptions" :key="o" :value="o">
+          {{ o === "off" ? "Off" : o[0].toUpperCase() + o.slice(1) }}
+        </option>
+      </select>
+      <span class="ms-arrow">▼</span>
+    </template>
   </div>
 </template>
 
@@ -20,6 +21,7 @@
 defineProps({
   modelName: { type: String, default: "" },
   effort: { type: String, default: "off" },
+  effortOptions: { type: Array, default: () => ["off", "low", "medium", "high"] },
 });
 
 defineEmits(["update:effort"]);

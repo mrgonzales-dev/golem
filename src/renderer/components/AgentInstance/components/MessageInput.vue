@@ -14,6 +14,7 @@
     <ModelSettings
       :modelName="modelName"
       :effort="effort"
+      :effortOptions="effortOptions"
       @update:effort="$emit('update:effort', $event)"
     />
   </div>
@@ -27,6 +28,7 @@ const props = defineProps({
   busy: { type: Boolean, default: false },
   modelName: { type: String, default: "" },
   effort: { type: String, default: "off" },
+  effortOptions: { type: Array, default: () => ["off", "low", "medium", "high"] },
 });
 
 const emit = defineEmits(["send", "sendQueue", "stop", "update:effort"]);

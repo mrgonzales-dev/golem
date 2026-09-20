@@ -17,6 +17,7 @@
         ref="agentCard"
         :models="models"
         :modelContextMap="modelContextMap"
+        :modelMetaMap="modelMetaMap"
         :folderPath="folderPath"
         v-model:diffOpen="diffOpen"
         v-model:pendingChanges="pendingChanges"
@@ -45,6 +46,7 @@ import { getProviderConfig, hasProviderConfig } from "./components/Settings/part
 
 const models = ref([]);
 const modelContextMap = ref({});
+const modelMetaMap = ref({});
 const folderPath = ref("");
 const viewingFile = ref("");
 const diffOpen = ref(false);
@@ -105,6 +107,7 @@ async function loadModels() {
     if (result.ok) {
       models.value = result.models;
       modelContextMap.value = result.contextMap || {};
+      modelMetaMap.value = result.metaMap || {};
     } else {
       console.error("Failed to load models:", result.error);
     }
