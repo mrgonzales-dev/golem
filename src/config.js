@@ -6,7 +6,7 @@ const axios = require("axios");
 async function getContextLengths(host, apiKey) {
   try {
     const origin = new URL(host).origin;
-    const res = await axios.get(`${origin}/api/v0/models`, {
+    const res = await axios.get(`${origin}/api/v1/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     const map = {};

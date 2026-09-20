@@ -1,6 +1,6 @@
 export function getProviderConfig() {
   return {
-    host: localStorage.getItem("providerHost") || "",
+    host: localStorage.getItem("providerHost") || "https://opencode.ai/zen/go/v1",
     apiKey: localStorage.getItem("providerApiKey") || "",
   };
 }

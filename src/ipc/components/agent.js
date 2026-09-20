@@ -14,6 +14,7 @@ const { chat } = require("@/ai-bridge");
 const { toolDefinitions, toolFunctions } = require("@/tools");
 const thinkingTexts = require("@/thinking-texts");
 const pendingChanges = require("@/diff-system/pendingChanges");
+const { randomUUID } = require("crypto");
 
 function randomThinkingText() {
   return thinkingTexts[Math.floor(Math.random() * thinkingTexts.length)];
@@ -24,11 +25,14 @@ class AgentSession {
     this.history = [];
     this.currentAbortController = null;
     this.lastFolderPath = null;
+    // Stable id per conversation. Go routes and caches by it.
+    this.sessionId = randomUUID();
   }
 
   clearHistory() {
     this.history = [];
     this.lastFolderPath = null;
+    this.sessionId = randomUUID();
   }
 
   interrupt() {
@@ -37,10 +41,24 @@ class AgentSession {
     }
   }
 
-  async handle(event, { message, model, folderPath, host, apiKey }) {
+  async handle(event, { message, model, folderPath, host, apiKey, effort }) {
+    if (!host) {
+      return { ok: false, error: "No API host set. Open Settings and set the API host." };
+    }
+    if (!apiKey) {
+      return { ok: false, error: "No API key set. Open Settings and set the API key." };
+    }
+    if (!model) {
+      return { ok: false, error: "No model selected. Pick a model from the list in the top bar." };
+    }
+    // Tag stays stable per run like opencode sessions. Each send
+    // mints only a fresh request id, mirroring x-opencode-request.
+    const sid = this.sessionId;
+    const rid = randomUUID();
     // Setup: timing, token tracking, abort controller
     const startTime = Date.now();
     let totalTokens = 0;
+    let reasoningChars = 0;
 
     this.currentAbortController = new AbortController();
     const signal = this.currentAbortController.signal;
@@ -48,7 +66,9 @@ class AgentSession {
     // Renderer communication helpers
     const sendThinking = (text) => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const tokens = totalTokens;
+      // Usage lands at stream end. Before that, count the live
+      // think stream by length so think tokens still show.
+      const tokens = totalTokens > 0 ? totalTokens : Math.ceil(reasoningChars / 4);
       if (event.sender && event.sender.send) {
         event.sender.send("agent:thinking", { text, elapsed, tokens });
       }
@@ -123,6 +143,9 @@ class AgentSession {
       let currentThinkingText = randomThinkingText();
 
       const onProgress = (progress) => {
+        if (progress.reasoning) {
+          reasoningChars = progress.reasoning.length;
+        }
         if (progress.usage) {
           totalTokens = progress.usage.total_tokens || totalTokens;
           if (event.sender && event.sender.send) {
@@ -155,7 +178,7 @@ class AgentSession {
         { tools: toolDefinitions },
         onProgress,
         signal,
-        { host, apiKey },
+        { host, apiKey, sessionId: sid, requestId: rid, effort },
       );
 
       // Tool-call loop: execute tools, feed results back to AI.
@@ -263,7 +286,7 @@ class AgentSession {
           { tools: toolDefinitions },
           onProgress,
           signal,
-          { host, apiKey },
+          { host, apiKey, sessionId: sid, requestId: rid, effort },
         );
       }
 
@@ -282,7 +305,7 @@ class AgentSession {
           {},
           onProgress,
           signal,
-          { host, apiKey },
+          { host, apiKey, sessionId: sid, requestId: rid, effort },
         );
       }
 
