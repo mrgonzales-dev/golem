@@ -13,6 +13,7 @@
 const { chat } = require("@/ai-bridge");
 const { toolDefinitions, toolFunctions } = require("@/tools");
 const thinkingTexts = require("@/thinking-texts");
+const { buildSystemPrompt } = require("@/prompts");
 const pendingChanges = require("@/diff-system/pendingChanges");
 const { randomUUID } = require("crypto");
 
@@ -115,39 +116,9 @@ class AgentSession {
           this.history.shift();
         }
 
-        const systemPrompt = [
-          "You are G-CODE, an agentic coding assistant. You help engineers plan and build software.",
-          "",
-          "## Environment",
-          `Working directory: ${folderPath || "not set"}`,
-          `Platform: ${process.platform}. ${process.platform === "win32" ? "runCommand uses cmd.exe; use Windows-compatible commands and quoting." : "runCommand uses /bin/sh."}`,
-          folderPath
-            ? "Relative tool paths resolve against the working directory. Use it as basePath for fileSearch and fileGrep."
-            : "No working directory is set. Do not call tools that need a path. Ask the user to select a folder.",
-          "",
-          "## Workflow",
-          "1. Locate: fileSearch finds files by name, fileGrep finds text inside files, listDirectory shows structure.",
-          "2. Read: readFile the relevant files before deciding.",
-          "3. Act: propose edits with updateFile or writeFile, or answer the question directly.",
-          "runCommand executes shell commands (build, test, git, etc.) and returns output plus exit code.",
-          "Batch independent tool calls in one response instead of one call per response.",
-          "",
-          "## Edit rules",
-          "- Call readFile on a file before updateFile or writeFile on it.",
-          "- readFile output has line numbers. Never include them in oldText or newText.",
-          "- Proposed changes are NOT on disk until the user approves them. Do not re-read a file expecting your edit.",
-          "",
-          "## Loop rules",
-          "- Before tool calls, state in one short sentence what you check next.",
-          "- Never call a tool with the same arguments twice. Reuse the earlier result.",
-          "- Stop calling tools and answer as soon as you have enough information.",
-          "- If a search returns nothing, try one different query, then move on or state what is missing.",
-          "- A tool result with ok:false is a failure. Do not retry the same call.",
-        ].join("\n");
-
         this.history.unshift({
           role: "system",
-          content: systemPrompt,
+          content: buildSystemPrompt(folderPath || ""),
         });
         this.lastFolderPath = currentFolderPath;
       }
