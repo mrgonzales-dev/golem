@@ -167,7 +167,13 @@ function sendSystemMessage(text) {
   }
 }
 
-defineExpose({ sendSystemMessage });
+// Local-only notice in the chat list. No model call — the session
+// already hears the decision through the change:decide history note.
+function pushNotice(text) {
+  messages.value.push({ sender: "System", text });
+}
+
+defineExpose({ sendSystemMessage, pushNotice });
 
 function stopAgent() {
   if (window.api.interruptChat) window.api.interruptChat();

@@ -41,15 +41,31 @@ class AgentSession {
     }
   }
 
+  // Append a silent note to the history without calling the model.
+  // Used to tell the session about out-of-band events like diff
+  // decisions, so the next turn starts with the real state.
+  note(text) {
+    this.history.push({ role: "user", content: text });
+  }
+
   async handle(event, { message, model, folderPath, host, apiKey, effort }) {
     if (!host) {
-      return { ok: false, error: "No API host set. Open Settings and set the API host." };
+      return {
+        ok: false,
+        error: "No API host set. Open Settings and set the API host.",
+      };
     }
     if (!apiKey) {
-      return { ok: false, error: "No API key set. Open Settings and set the API key." };
+      return {
+        ok: false,
+        error: "No API key set. Open Settings and set the API key.",
+      };
     }
     if (!model) {
-      return { ok: false, error: "No model selected. Pick a model from the list in the top bar." };
+      return {
+        ok: false,
+        error: "No model selected. Pick a model from the list in the top bar.",
+      };
     }
     // Tag stays stable per run like opencode sessions. Each send
     // mints only a fresh request id, mirroring x-opencode-request.
@@ -345,4 +361,5 @@ module.exports = {
   handler: (event, args) => defaultSession.handle(event, args),
   interrupt: () => defaultSession.interrupt(),
   clearHistory: () => defaultSession.clearHistory(),
+  note: (text) => defaultSession.note(text),
 };

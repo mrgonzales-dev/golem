@@ -43,7 +43,7 @@ function decide(id, approved) {
 
   if (!approved) {
     pending.delete(id);
-    return { ok: true, status: "rejected" };
+    return { ok: true, status: "rejected", filePath: change.filePath };
   }
 
   if (
@@ -58,10 +58,23 @@ function decide(id, approved) {
     fs.writeFileSync(change.filePath, change.stagedContent);
     markFileRead(change.filePath);
     pending.delete(id);
-    return { ok: true, status: "applied" };
+    return { ok: true, status: "applied", filePath: change.filePath };
   } catch (err) {
-    return { ok: false, status: "error", error: err.message };
+    return {
+      ok: false,
+      status: "error",
+      error: err.message,
+      filePath: change.filePath,
+    };
   }
+}
+
+/**
+ * Count of changes still awaiting a decision.
+ * @returns {number}
+ */
+function count() {
+  return pending.size;
 }
 
 /**
@@ -106,4 +119,4 @@ function rejectAll() {
   pending.clear();
 }
 
-module.exports = { propose, decide, findByPath, update, rejectAll };
+module.exports = { propose, decide, findByPath, update, rejectAll, count };

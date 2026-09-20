@@ -123,20 +123,30 @@ async function selectFolder() {
   }
 }
 
-async function handleDecide(id, approved) {
+async function handleDecide(id, approved, quiet) {
   if (!window.api?.decideChange) return;
+  const file =
+    pendingChanges.value.find((c) => c.id === id)?.filePath || "the file";
   const result = await window.api.decideChange(id, approved);
   const status = result?.status || (approved ? "applied" : "rejected");
   if (status === "applied") {
     pendingChanges.value = pendingChanges.value.filter((c) => c.id !== id);
     fileBrowser.value?.refresh?.();
-    return;
+  } else {
+    pendingChanges.value = pendingChanges.value.map((c) =>
+      c.id === id ? { ...c, status } : c,
+    );
   }
-  pendingChanges.value = pendingChanges.value.map((c) =>
-    c.id === id ? { ...c, status } : c,
-  );
+  if (!quiet) {
+    const left = pendingChanges.value.filter(
+      (c) => c.status === "pending",
+    ).length;
+    agentCard.value?.pushNotice?.(
+      `Change ${id} ${status} (${file}). ` +
+        (left ? `${left} change(s) still pending.` : "No changes pending."),
+    );
+  }
   if (status === "stale") {
-    const file = result?.filePath || pendingChanges.value.find((c) => c.id === id)?.filePath || "the file";
     agentCard.value?.sendSystemMessage?.(
       `Change ${id} for ${file} was not applied: the file changed on disk since the proposal. Re-read it with readFile and propose the change again.`,
     );
@@ -146,8 +156,15 @@ async function handleDecide(id, approved) {
 async function handleDecideAll(approved) {
   const pending = pendingChanges.value.filter((c) => c.status === "pending");
   for (const change of pending) {
-    await handleDecide(change.id, approved);
+    await handleDecide(change.id, approved, true);
   }
+  const left = pendingChanges.value.filter(
+    (c) => c.status === "pending",
+  ).length;
+  agentCard.value?.pushNotice?.(
+    `${pending.length} change(s) ${approved ? "approved" : "rejected"}. ` +
+      (left ? `${left} still pending.` : "No changes pending."),
+  );
 }
 
 onMounted(() => {
