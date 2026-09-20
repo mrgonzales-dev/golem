@@ -185,7 +185,9 @@ class AgentSession {
       // Guardrails: hard step limit, and an advisory-then-trip guard on
       // identical calls (same tool + same arguments). Synthetic tool
       // results keep the history valid when we halt mid-batch.
-      const MAX_STEPS = 25;
+      // 25 was too low for multi-file tasks — a single review easily
+      // reads 20+ files. GOLEM_MAX_STEPS overrides for testing.
+      const MAX_STEPS = Number(process.env.GOLEM_MAX_STEPS) || 250;
       let stepCount = 0;
       let halted = false;
       // Consecutive identical calls only. A different call between two
@@ -223,10 +225,12 @@ class AgentSession {
           let result;
           const signature = `${toolName}\0${toolCall.function.arguments}`;
           if (halted) {
-            result = "Stopped: the tool loop already halted. Answer with what you have.";
+            result =
+              "Stopped: the tool loop already halted. Answer with what you have.";
             sendToolCall(toolName, args, "error", callId);
           } else if (batchSignatures.has(signature)) {
-            result = "Skipped: an identical call already ran in this batch. Use that result.";
+            result =
+              "Skipped: an identical call already ran in this batch. Use that result.";
             sendToolCall(toolName, args, "done", callId);
           } else {
             batchSignatures.add(signature);
@@ -250,7 +254,8 @@ class AgentSession {
                 try {
                   result = await fn(args, folderPath, toolCtx);
                   if (dupStreak === 1 || lifetimeCount === 2) {
-                    result += "\n\nNote: this exact call already ran once and returned the same result. Do not repeat it; use this output or different arguments.";
+                    result +=
+                      "\n\nNote: this exact call already ran once and returned the same result. Do not repeat it; use this output or different arguments.";
                   }
                   sendToolCall(toolName, args, "done", callId);
                 } catch (err) {
@@ -299,20 +304,20 @@ class AgentSession {
             "Tool use is stopped. Summarize what you found and answer now without calling tools.",
         });
         sendThinking("Summarizing findings");
-        reply = await chat(
-          this.history,
-          model,
-          {},
-          onProgress,
-          signal,
-          { host, apiKey, sessionId: sid, requestId: rid, effort },
-        );
+        reply = await chat(this.history, model, {}, onProgress, signal, {
+          host,
+          apiKey,
+          sessionId: sid,
+          requestId: rid,
+          effort,
+        });
       }
 
       // Finalize: store assistant reply and return
       let finalReply = reply.content || "";
       if (halted) {
-        finalReply += (finalReply ? "\n\n" : "") +
+        finalReply +=
+          (finalReply ? "\n\n" : "") +
           "[Stopped: the tool loop hit the step limit or repeated identical calls.]";
       }
       this.history.push({ role: "assistant", content: finalReply });
