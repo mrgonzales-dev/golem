@@ -36,13 +36,14 @@
 
 <script setup>
 
-import {ref, computed, onMounted, onBeforeUnmount} from "vue";
+import {ref, computed, watch, onMounted, onBeforeUnmount} from "vue";
 import "./style.css";
 import FileBrowserPanel from "./components/FileBrowserPanel.vue";
 import TitleBar from "./components/TitleBar.vue";
 import SettingsModal from "./components/Settings/SettingsModal.vue";
 import AgentInstanceCard from "./components/AgentInstance/AgentInstanceCard.vue";
 import { getProviderConfig, hasProviderConfig } from "./components/Settings/partials/providerConfig";
+import { loadAppState, saveAppState } from "./partials/appState";
 
 const models = ref([]);
 const modelContextMap = ref({});
@@ -171,8 +172,38 @@ async function handleDecideAll(approved) {
   );
 }
 
-onMounted(() => {
+watch([folderPath, viewingFile, browserVisible, browserWidth], () => {
+  saveAppState({
+    folderPath: folderPath.value,
+    viewingFile: viewingFile.value,
+    browserVisible: browserVisible.value,
+    browserWidth: browserWidth.value,
+  });
+});
+
+onMounted(async () => {
+  const saved = loadAppState();
+  folderPath.value = saved.folderPath;
+  viewingFile.value = saved.viewingFile;
+  browserVisible.value = saved.browserVisible;
+  browserWidth.value = Math.min(
+    Math.max(saved.browserWidth, BROWSER_MIN),
+    BROWSER_MAX,
+  );
   loadModels();
+  if (window.api?.loadLatestSession) {
+    try {
+      const result = await window.api.loadLatestSession();
+      if (result.ok && result.session) {
+        const s = result.session;
+        if (s.folderPath) folderPath.value = s.folderPath;
+        pendingChanges.value = s.pendingChanges || [];
+        agentCard.value?.restoreSession?.(s);
+      }
+    } catch (err) {
+      console.error("Session restore failed:", err.message);
+    }
+  }
 });
 
 onBeforeUnmount(stopResize);

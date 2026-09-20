@@ -11,8 +11,18 @@ const folder = require("./components/folder");
 const settings = require("./components/settings");
 const changes = require("./components/changes");
 const file = require("./components/file");
+const session = require("../session-system/sessionIpc");
 
-const handlers = [agent, models, dialog, folder, settings, changes, file];
+const handlers = [
+  agent,
+  models,
+  dialog,
+  folder,
+  settings,
+  changes,
+  file,
+  ...session.handlers,
+];
 
 function registerIpcHandlers() {
   for (const { name, handler } of handlers) {

@@ -119,4 +119,36 @@ function rejectAll() {
   pending.clear();
 }
 
-module.exports = { propose, decide, findByPath, update, rejectAll, count };
+/**
+ * Snapshot every pending change for session persistence.
+ * Includes stagedContent and stagedMtime — the session file needs
+ * the full proposal so an approval still writes after a restart.
+ * @returns {object[]} Array of { id, ...change }.
+ */
+function serialize() {
+  return [...pending.entries()].map(([id, change]) => ({ id, ...change }));
+}
+
+/**
+ * Replace the pending map from a serialized session snapshot.
+ * Replaces rather than merges: leftovers from the current run must
+ * not leak into the restored session.
+ * @param {object[]} entries - Array of { id, ...change }.
+ */
+function restore(entries) {
+  pending.clear();
+  for (const { id, ...change } of entries || []) {
+    pending.set(id, change);
+  }
+}
+
+module.exports = {
+  propose,
+  decide,
+  findByPath,
+  update,
+  rejectAll,
+  count,
+  serialize,
+  restore,
+};

@@ -42,6 +42,22 @@ class AgentSession {
     }
   }
 
+  // The fields a session file needs to resume this conversation:
+  // the API history plus the provider session tag.
+  snapshot() {
+    return {
+      sessionId: this.sessionId,
+      history: this.history,
+      lastFolderPath: this.lastFolderPath,
+    };
+  }
+
+  restore(data) {
+    this.sessionId = data.sessionId || randomUUID();
+    this.history = Array.isArray(data.history) ? data.history : [];
+    this.lastFolderPath = data.lastFolderPath || null;
+  }
+
   // Append a silent note to the history without calling the model.
   // Used to tell the session about out-of-band events like diff
   // decisions, so the next turn starts with the real state.
@@ -344,4 +360,6 @@ module.exports = {
   interrupt: () => defaultSession.interrupt(),
   clearHistory: () => defaultSession.clearHistory(),
   note: (text) => defaultSession.note(text),
+  snapshot: () => defaultSession.snapshot(),
+  restore: (data) => defaultSession.restore(data),
 };

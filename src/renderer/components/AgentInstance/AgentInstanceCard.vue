@@ -75,6 +75,7 @@ import { applyToolCall } from "./partials/toolCalls";
 import { shouldFlush, dequeue, handleSend as queueSend } from "./partials/agentQueue";
 import { getProviderConfig } from "../Settings/partials/providerConfig";
 import { runCommand, isCommand } from "@/commands/commands";
+import { scheduleSessionSave } from "@/session-system/sessionSync";
 
 const props = defineProps({
   models: { type: Array, default: () => [] },
@@ -174,7 +175,30 @@ function pushNotice(text) {
   messages.value.push({ sender: "System", text });
 }
 
-defineExpose({ sendSystemMessage, pushNotice });
+function pushError(text) {
+  messages.value.push({ sender: "Error", text });
+}
+
+// Hydrates the card from a session:latest payload. Only the
+// display layer — the real history was already restored in main.
+function restoreSession(session) {
+  if (Array.isArray(session.messages)) messages.value = session.messages;
+  if (session.selectedModel) selectedModel.value = session.selectedModel;
+  if (session.thinkingEffort) thinkingEffort.value = session.thinkingEffort;
+}
+
+// Debounced session persist. Main merges this display state with
+// AgentSession history and pendingChanges before writing.
+function requestSave() {
+  scheduleSessionSave(() => ({
+    messages: messages.value,
+    folderPath: props.folderPath,
+    selectedModel: selectedModel.value,
+    thinkingEffort: thinkingEffort.value,
+  }));
+}
+
+defineExpose({ sendSystemMessage, pushNotice, restoreSession, requestSave });
 
 function stopAgent() {
   if (window.api.interruptChat) window.api.interruptChat();
@@ -269,6 +293,7 @@ async function sendMessage(text, sender = "You") {
     if (stopToolListener) stopToolListener();
     if (stopNoteListener) stopNoteListener();
     isResponding.value = false;
+    requestSave();
     if (queue.value.length > 0) {
       const { item, rest } = dequeue(queue.value);
       queue.value = rest;
@@ -288,6 +313,7 @@ onMounted(() => {
         : [...props.pendingChanges, data];
       emit("update:pendingChanges", next);
       emit("update:diffOpen", true);
+      requestSave();
     });
   }
   if (window.api.onUsage) {
@@ -302,6 +328,7 @@ onMounted(() => {
         "update:pendingChanges",
         props.pendingChanges.map((c) => (c.id === id ? { ...c, status } : c)),
       );
+      requestSave();
     });
   }
 });

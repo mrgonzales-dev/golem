@@ -75,4 +75,9 @@ contextBridge.exposeInMainWorld("api", {
   platform: process.platform,
   testConnection: (host, apiKey) =>
     ipcRenderer.invoke("settings:test", { host, apiKey }),
+  saveSession: (payload) => ipcRenderer.invoke("session:save", payload),
+  loadLatestSession: () => ipcRenderer.invoke("session:latest"),
+  listSessions: () => ipcRenderer.invoke("session:list"),
+  newSession: () => ipcRenderer.invoke("session:new"),
+  deleteSession: (id) => ipcRenderer.invoke("session:delete", id),
 });
