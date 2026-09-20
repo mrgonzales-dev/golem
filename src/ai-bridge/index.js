@@ -17,7 +17,8 @@ function readableChatError(err, model) {
   let detail = "";
   if (data) {
     if (typeof data.error === "string") detail = data.error;
-    else if (data.error && typeof data.error.message === "string") detail = data.error.message;
+    else if (data.error && typeof data.error.message === "string")
+      detail = data.error.message;
     else if (typeof data.message === "string") detail = data.message;
     else if (typeof data === "string") detail = data;
     else {
@@ -50,12 +51,41 @@ function readableChatError(err, model) {
 }
 
 /**
+ * Drain an error response stream into text. Requests run with
+ * responseType "stream", so a 4xx/5xx error body arrives as a
+ * Readable, not parsed JSON. Without this, readableChatError sees
+ * a stream object and the real server message is lost.
+ */
+async function drainErrorBody(err) {
+  const data = err.response && err.response.data;
+  if (!data || typeof data.on !== "function") return;
+  const text = await new Promise((resolve) => {
+    let buf = "";
+    data.on("data", (chunk) => (buf += chunk.toString("utf8")));
+    data.on("end", () => resolve(buf));
+    data.on("error", () => resolve(buf));
+  });
+  try {
+    err.response.data = JSON.parse(text);
+  } catch {
+    err.response.data = text;
+  }
+}
+
+/**
  * Streaming chat completion.
  *
  * Calls onProgress({ content, toolCalls, usage }) as chunks arrive
  * so the caller can update the UI in real time.
  */
-async function chat(messages, model, options = {}, onProgress, abortSignal, config) {
+async function chat(
+  messages,
+  model,
+  options = {},
+  onProgress,
+  abortSignal,
+  config,
+) {
   const { host, apiKey, sessionId, requestId, effort } = config;
 
   const fullBody = {
@@ -112,7 +142,16 @@ async function chat(messages, model, options = {}, onProgress, abortSignal, conf
       break;
     } catch (err) {
       if (err.message === "Aborted" || err.message === "canceled") throw err;
+      await drainErrorBody(err);
       lastErr = err;
+      if (process.env.GOLEM_DEBUG) {
+        console.error(
+          `[debug] POST ${host}/chat/completions body=${JSON.stringify(body).slice(0, 600)}`,
+        );
+        console.error(
+          `[debug] -> HTTP ${err.response ? err.response.status : "?"} ${JSON.stringify(err.response ? err.response.data : err.message).slice(0, 600)}`,
+        );
+      }
       const status = err.response ? err.response.status : 0;
       if (status < 400 || status >= 500) break;
     }
@@ -188,11 +227,13 @@ async function chat(messages, model, options = {}, onProgress, abortSignal, conf
               if (!toolCallMap.has(toolCallIndex)) {
                 toolCallMap.set(toolCallIndex, {
                   id: toolCallDelta.id || "",
+                  type: "function",
                   function: { name: "", arguments: "" },
                 });
               }
               const toolCallEntry = toolCallMap.get(toolCallIndex);
               if (toolCallDelta.id) toolCallEntry.id = toolCallDelta.id;
+              if (toolCallDelta.type) toolCallEntry.type = toolCallDelta.type;
               if (toolCallDelta.function?.name)
                 toolCallEntry.function.name += toolCallDelta.function.name;
               if (toolCallDelta.function?.arguments)
