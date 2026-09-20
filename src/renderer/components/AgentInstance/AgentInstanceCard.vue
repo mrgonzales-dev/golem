@@ -74,6 +74,7 @@ import QuickPromptActionToolBar from "./components/QuickPromptActionToolBar.vue"
 import { applyToolCall } from "./partials/toolCalls";
 import { shouldFlush, dequeue, handleSend as queueSend } from "./partials/agentQueue";
 import { getProviderConfig } from "../Settings/partials/providerConfig";
+import { runCommand, isCommand } from "@/commands/commands";
 
 const props = defineProps({
   models: { type: Array, default: () => [] },
@@ -139,9 +140,13 @@ watch(thinkingEffort, (newEffort) => {
 });
 
 function handleSend(text) {
-  const clean = text.trim();
-  if (clean.startsWith("/")) {
-    runCommand(clean);
+  if (isCommand(text)) {
+    runCommand(text, {
+      pushMessage: pushNotice,
+      pushError,
+      openSettings: () => emit("openSettings"),
+      clearChat: () => (messages.value = []),
+    });
     return;
   }
   const result = queueSend(queue.value, isResponding.value, text);
@@ -149,26 +154,6 @@ function handleSend(text) {
 
   if (result.action === "send") {
     sendMessage(result.text);
-  }
-}
-
-// Local input commands. These never reach the model.
-function runCommand(text) {
-  const cmd = text.split(/\s+/)[0].toLowerCase();
-  if (cmd === "/settings") {
-    emit("openSettings");
-  } else if (cmd === "/help") {
-    messages.value.push({
-      sender: "System",
-      text: "/settings opens Settings. /help shows this list. /clear clears the chat.",
-    });
-  } else if (cmd === "/clear") {
-    messages.value = [];
-  } else {
-    messages.value.push({
-      sender: "Error",
-      text: `Unknown command "${cmd}". Type /help for the list.`,
-    });
   }
 }
 
