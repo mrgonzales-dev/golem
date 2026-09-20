@@ -1,22 +1,41 @@
 <template>
-  <div class="title-bar" :class="{ 'title-bar-left': isMac }">
-    <div class="traffic-lights">
-      <template v-if="isMac">
+  <div class="title-bar">
+    <template v-if="isMac">
+      <div class="traffic-lights">
         <button class="traffic-light traffic-light-close" @click="close"></button>
         <button class="traffic-light traffic-light-minimize" @click="minimize"></button>
         <button class="traffic-light traffic-light-maximize" @click="maximize"></button>
-      </template>
-      <template v-else>
+      </div>
+      <MenuBar
+        :browserVisible="browserVisible"
+        @openSettings="$emit('openSettings')"
+        @toggleBrowser="$emit('toggleBrowser')"
+      />
+    </template>
+    <template v-else>
+      <MenuBar
+        :browserVisible="browserVisible"
+        @openSettings="$emit('openSettings')"
+        @toggleBrowser="$emit('toggleBrowser')"
+      />
+      <div class="traffic-lights">
         <button class="traffic-light traffic-light-minimize" @click="minimize"></button>
         <button class="traffic-light traffic-light-maximize" @click="maximize"></button>
         <button class="traffic-light traffic-light-close" @click="close"></button>
-      </template>
-    </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed } from "vue";
+import MenuBar from "./MenuBar.vue";
+
+defineProps({
+  browserVisible: { type: Boolean, default: true },
+});
+
+defineEmits(["openSettings", "toggleBrowser"]);
 
 const isMac = computed(() => window.api?.platform === "darwin");
 
@@ -38,14 +57,11 @@ function maximize() {
   height: 28px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 0 12px;
+  border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
   flex-shrink: 0;
-}
-
-.title-bar-left {
-  justify-content: flex-start;
 }
 
 .traffic-lights {

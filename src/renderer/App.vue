@@ -1,29 +1,35 @@
 <template>
   <div class="app-shell">
-    <TitleBar />
+    <TitleBar
+      :browserVisible="browserVisible"
+      @openSettings="settingsOpen = true"
+      @toggleBrowser="browserVisible = !browserVisible"
+    />
     <div class="parent" :class="{ resizing: resizing }" :style="parentStyle">
-      <FileBrowserPanel ref="fileBrowser" :folderPath="folderPath" :collapsed="browserCollapsed" @toggleCollapse="browserCollapsed = !browserCollapsed" @selectFolder="selectFolder" @settingsSaved="loadModels" @openFile="viewingFile = $event" />
+      <FileBrowserPanel v-if="browserVisible" ref="fileBrowser" :folderPath="folderPath" @selectFolder="selectFolder" @settingsSaved="loadModels" @openFile="viewingFile = $event" @toggleBrowser="browserVisible = false" />
       <div
+        v-if="browserVisible"
         class="pane-resizer"
         :class="{ active: resizing === 'browser' }"
         @mousedown.prevent="startResize('browser', $event)"
       ></div>
-      <CodeViewer
-        v-if="viewingFile"
-        :filePath="viewingFile"
-        @close="viewingFile = ''"
-      />
       <AgentInstanceCard
-        v-show="!viewingFile"
         ref="agentCard"
         :models="models"
         :modelContextMap="modelContextMap"
         :folderPath="folderPath"
         v-model:diffOpen="diffOpen"
         v-model:pendingChanges="pendingChanges"
+        v-model:viewingFile="viewingFile"
+        @openSettings="settingsOpen = true"
         @decideAll="handleDecideAll"
       />
     </div>
+    <SettingsModal
+      :open="settingsOpen"
+      @close="settingsOpen = false"
+      @saved="loadModels"
+    />
   </div>
 </template>
 
@@ -33,7 +39,7 @@ import {ref, computed, onMounted, onBeforeUnmount} from "vue";
 import "./style.css";
 import FileBrowserPanel from "./components/FileBrowserPanel.vue";
 import TitleBar from "./components/TitleBar.vue";
-import CodeViewer from "./components/FilePane/CodeViewer.vue";
+import SettingsModal from "./components/Settings/SettingsModal.vue";
 import AgentInstanceCard from "./components/AgentInstance/AgentInstanceCard.vue";
 import { getProviderConfig, hasProviderConfig } from "./components/Settings/partials/providerConfig";
 
@@ -45,9 +51,10 @@ const diffOpen = ref(false);
 const pendingChanges = ref([]);
 const agentCard = ref(null);
 const fileBrowser = ref(null);
+const settingsOpen = ref(false);
 
 const browserWidth = ref(200);
-const browserCollapsed = ref(false);
+const browserVisible = ref(false);
 const resizing = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
@@ -55,21 +62,15 @@ let resizeStartWidth = 0;
 const BROWSER_MIN = 140;
 const BROWSER_MAX = 480;
 const AGENT_MIN = 280;
-const VIEWER_MIN = 280;
-const BROWSER_COLLAPSED = 36;
-
-const effectiveBrowserWidth = computed(() =>
-  browserCollapsed.value ? BROWSER_COLLAPSED : browserWidth.value,
-);
 
 const parentStyle = computed(() => ({
-  gridTemplateColumns: viewingFile.value
-    ? `${effectiveBrowserWidth.value}px 8px minmax(${VIEWER_MIN}px, 1fr)`
-    : `${effectiveBrowserWidth.value}px 8px minmax(0, 1fr)`,
+  gridTemplateColumns: browserVisible.value
+    ? `${browserWidth.value}px 8px minmax(0, 1fr)`
+    : `minmax(0, 1fr)`,
 }));
 
 function startResize(pane, event) {
-  if (pane === "browser" && browserCollapsed.value) return;
+  if (pane === "browser" && !browserVisible.value) return;
   resizing.value = pane;
   resizeStartX = event.clientX;
   resizeStartWidth = browserWidth.value;
@@ -81,11 +82,10 @@ function onResizeMove(event) {
   if (!resizing.value) return;
   const delta = event.clientX - resizeStartX;
   if (resizing.value === "browser") {
-    const roomNeeded = viewingFile.value ? VIEWER_MIN : AGENT_MIN;
     browserWidth.value = Math.min(
       Math.max(resizeStartWidth + delta, BROWSER_MIN),
       BROWSER_MAX,
-      window.innerWidth - 16 - roomNeeded,
+      window.innerWidth - 16 - AGENT_MIN,
     );
   }
 }

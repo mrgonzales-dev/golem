@@ -1,11 +1,7 @@
 <template>
-  <div class="side-panel" :class="{ collapsed }">
-    <div v-if="collapsed" class="collapsed-strip" @click="$emit('toggleCollapse')">
-      <span class="collapsed-label">Browser</span>
-    </div>
-    <template v-else>
+  <div class="side-panel">
     <div class="panel-tabs">
-      <div class="panel-tab active" @click="$emit('toggleCollapse')">Browser</div>
+      <div class="panel-tab active" @click="$emit('toggleBrowser')">Browser</div>
       <div
         class="refresh-btn"
         :class="{ disabled: !folderPath }"
@@ -55,7 +51,6 @@
       @close="settingsOpen = false"
       @saved="$emit('settingsSaved')"
     />
-    </template>
   </div>
 </template>
 
@@ -68,10 +63,9 @@ import folderClosedIcon from "../../icons/folder-open-closed.svg?raw";
 
 const props = defineProps({
   folderPath: { type: String, default: "" },
-  collapsed: { type: Boolean, default: false },
 });
 
-defineEmits(["selectFolder", "settingsSaved", "openFile", "toggleCollapse"]);
+defineEmits(["selectFolder", "settingsSaved", "openFile", "toggleBrowser"]);
 
 const entries = ref([]);
 const loading = ref(false);
@@ -169,31 +163,11 @@ watch(() => props.folderPath, loadContents, { immediate: true });
   border-bottom: 2px solid transparent;
 }
 
-.panel-tab.active {
+.panel-tab:hover {
   color: var(--text);
 }
 
-.collapsed-strip {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 8px;
-  cursor: pointer;
-}
-
-.collapsed-strip:hover {
-  background-color: var(--bg-tertiary);
-}
-
-.collapsed-label {
-  writing-mode: vertical-rl;
-  font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 1px;
-}
-
-.collapsed-strip:hover .collapsed-label {
+.panel-tab.active {
   color: var(--text);
 }
 

@@ -64,8 +64,6 @@ watch(() => props.filePath, loadFile, { immediate: true });
 
 <style scoped>
 .code-viewer {
-  grid-row: 1;
-  grid-column: 3;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
