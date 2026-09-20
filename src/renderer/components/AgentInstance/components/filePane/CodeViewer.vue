@@ -11,7 +11,7 @@
       <div v-else class="cv-lines">
         <div v-for="(line, i) in lines" :key="i" class="cv-line">
           <span class="cv-num">{{ i + 1 }}</span>
-          <span class="cv-text">{{ line }}</span>
+          <span class="cv-text" v-html="line"></span>
         </div>
       </div>
     </div>
@@ -20,6 +20,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { highlightLines } from "./partials/highlight";
 
 const props = defineProps({
   filePath: { type: String, default: "" },
@@ -37,7 +38,7 @@ const fileName = computed(() => {
   return parts[parts.length - 1] || props.filePath;
 });
 
-const lines = computed(() => (content.value ? content.value.split("\n") : []));
+const lines = computed(() => highlightLines(content.value, props.filePath));
 
 async function loadFile() {
   if (!props.filePath || !window.api?.readFileContent) return;
@@ -155,5 +156,52 @@ watch(() => props.filePath, loadFile, { immediate: true });
   overflow-wrap: anywhere;
   user-select: text;
   padding-right: 8px;
+}
+
+/* Grayscale hljs theme — the palette has no colors, so tokens
+   differ by brightness and weight instead of hue. */
+.cv-text :deep(.hljs-comment),
+.cv-text :deep(.hljs-quote) {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.cv-text :deep(.hljs-keyword),
+.cv-text :deep(.hljs-selector-tag),
+.cv-text :deep(.hljs-meta) {
+  color: var(--accent-hover);
+  font-weight: bold;
+}
+
+.cv-text :deep(.hljs-string),
+.cv-text :deep(.hljs-regexp),
+.cv-text :deep(.hljs-addition) {
+  color: var(--text);
+}
+
+.cv-text :deep(.hljs-number),
+.cv-text :deep(.hljs-literal),
+.cv-text :deep(.hljs-built_in),
+.cv-text :deep(.hljs-type) {
+  color: var(--accent-hover);
+}
+
+.cv-text :deep(.hljs-title),
+.cv-text :deep(.hljs-name),
+.cv-text :deep(.hljs-section) {
+  color: var(--text);
+  font-weight: bold;
+}
+
+.cv-text :deep(.hljs-attr),
+.cv-text :deep(.hljs-attribute),
+.cv-text :deep(.hljs-variable),
+.cv-text :deep(.hljs-template-variable) {
+  color: var(--text);
+}
+
+.cv-text :deep(.hljs-deletion),
+.cv-text :deep(.hljs-symbol) {
+  color: var(--danger);
 }
 </style>
