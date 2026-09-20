@@ -24,8 +24,13 @@
         <ThinkingReply
           v-else-if="msg.sender === 'Thinking'"
           :text="msg.text"
+          :full="msg.full"
           :elapsed="msg.elapsed"
           :tokens="msg.tokens"
+        />
+        <ReasoningLine
+          v-else-if="msg.sender === 'Reason'"
+          :text="msg.text"
         />
         <AgentToolCall
           v-else-if="msg.sender === 'Tool'"
@@ -63,6 +68,7 @@ import { ref, watch, nextTick, onMounted } from "vue";
 import UserMessage from "./UserMessage.vue";
 import AgentReply from "./AgentReply.vue";
 import ThinkingReply from "./agentReply/ThinkingReply.vue";
+import ReasoningLine from "./agentReply/ReasoningLine.vue";
 import AgentToolCall from "./agentReply/AgentToolCall.vue";
 import AgentError from "./agentReply/AgentError.vue";
 import QueueBar from "./QueueBar.vue";

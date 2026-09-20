@@ -81,13 +81,14 @@ class AgentSession {
     const signal = this.currentAbortController.signal;
 
     // Renderer communication helpers
-    const sendThinking = (text) => {
+    const sendThinking = (text, full) => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       // Usage lands at stream end. Before that, count the live
       // think stream by length so think tokens still show.
-      const tokens = totalTokens > 0 ? totalTokens : Math.ceil(reasoningChars / 4);
+      const tokens =
+        totalTokens > 0 ? totalTokens : Math.ceil(reasoningChars / 4);
       if (event.sender && event.sender.send) {
-        event.sender.send("agent:thinking", { text, elapsed, tokens });
+        event.sender.send("agent:thinking", { text, full, elapsed, tokens });
       }
     };
 
@@ -153,7 +154,10 @@ class AgentSession {
           .map((l) => l.trim())
           .filter(Boolean)
           .pop();
-        sendThinking(tail ? tail.slice(0, 80) : currentThinkingText);
+        sendThinking(
+          tail ? tail.slice(0, 80) : currentThinkingText,
+          progress.reasoning || null,
+        );
       };
 
       sendThinking(currentThinkingText);
@@ -192,6 +196,13 @@ class AgentSession {
           content: reply.content || "",
           tool_calls: reply.toolCalls,
         });
+
+        // Show the model's transition line before this tool batch so the
+        // chat reads: reasoning -> tools -> reasoning -> tools.
+        const noteText = (reply.content || "").trim();
+        if (noteText && event.sender && event.sender.send) {
+          event.sender.send("agent:note", { text: noteText });
+        }
 
         // Signatures seen in this batch. A model that emits the same
         // call twice in one response cannot have seen the result, so

@@ -203,12 +203,14 @@ async function sendMessage(text, sender = "You") {
 
   let stopThinkingListener = null;
   let stopToolListener = null;
+  let stopNoteListener = null;
 
   const handleThinking = (data) => {
     if (messages.value[thinkingId]?.sender !== "Thinking") return;
     messages.value[thinkingId] = {
       sender: "Thinking",
       text: data.text,
+      full: data.full,
       elapsed: data.elapsed,
       tokens: data.tokens,
     };
@@ -220,11 +222,21 @@ async function sendMessage(text, sender = "You") {
     thinkingId = result.thinkingId;
   };
 
+  // The model's transition sentence between tool rounds. Settled text,
+  // inserted above the live thinking slot so the trace stays ordered.
+  const handleNote = (data) => {
+    messages.value.splice(thinkingId, 0, { sender: "Reason", text: data.text });
+    thinkingId++;
+  };
+
   if (window.api.onThinking) {
     stopThinkingListener = window.api.onThinking(handleThinking);
   }
   if (window.api.onToolCall) {
     stopToolListener = window.api.onToolCall(handleToolCall);
+  }
+  if (window.api.onNote) {
+    stopNoteListener = window.api.onNote(handleNote);
   }
 
   try {
@@ -254,6 +266,7 @@ async function sendMessage(text, sender = "You") {
   } finally {
     if (stopThinkingListener) stopThinkingListener();
     if (stopToolListener) stopToolListener();
+    if (stopNoteListener) stopNoteListener();
     isResponding.value = false;
     if (queue.value.length > 0) {
       const { item, rest } = dequeue(queue.value);

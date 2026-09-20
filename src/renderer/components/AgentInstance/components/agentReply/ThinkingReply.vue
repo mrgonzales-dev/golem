@@ -1,7 +1,12 @@
 <template>
-  <div class="agent-thinking-reply">
+  <div
+    class="agent-thinking-reply"
+    :class="{ expanded }"
+    @click="expanded = !expanded"
+  >
     <span class="thinking-spinner"></span>
-    <span class="thinking-text">{{ text }}…</span>
+    <span v-if="expanded" ref="fullEl" class="thinking-full">{{ full || text }}</span>
+    <span v-else class="thinking-text">{{ text }}…</span>
     <span class="thinking-meta">
       (↓ · {{ localElapsed }}s · {{ formatTokens(tokens) }})
     </span>
@@ -9,14 +14,17 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted, watch } from "vue";
+import { ref, onUnmounted, watch, nextTick } from "vue";
 
 const props = defineProps({
   text: { type: String, required: true },
+  full: { type: String, default: null },
   elapsed: { type: Number, default: 0 },
   tokens: { type: Number, default: 0 },
 });
 
+const expanded = ref(false);
+const fullEl = ref(null);
 const localElapsed = ref(props.elapsed);
 let timer = null;
 
@@ -34,6 +42,16 @@ watch(() => props.elapsed, (newVal) => {
     localElapsed.value = newVal;
   }
 });
+
+watch(
+  () => [expanded.value, props.full],
+  () => {
+    if (!expanded.value) return;
+    nextTick(() => {
+      if (fullEl.value) fullEl.value.scrollTop = fullEl.value.scrollHeight;
+    });
+  },
+);
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
@@ -55,6 +73,15 @@ function formatTokens(n) {
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+}
+
+.agent-thinking-reply.expanded {
+  align-items: flex-start;
+}
+
+.agent-thinking-reply.expanded .thinking-spinner {
+  margin-top: 4px;
 }
 
 .thinking-spinner {
@@ -74,9 +101,20 @@ function formatTokens(n) {
 }
 
 .thinking-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.thinking-full {
   white-space: pre-wrap;
   min-width: 0;
+  flex: 1;
   overflow-wrap: anywhere;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .thinking-meta {
@@ -84,5 +122,6 @@ function formatTokens(n) {
   font-style: italic;
   font-size: 0.85em;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 </style>
