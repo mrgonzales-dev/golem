@@ -158,50 +158,9 @@ watch(() => props.filePath, loadFile, { immediate: true });
   padding-right: 8px;
 }
 
-/* Grayscale hljs theme — the palette has no colors, so tokens
-   differ by brightness and weight instead of hue. */
-.cv-text :deep(.hljs-comment),
-.cv-text :deep(.hljs-quote) {
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-.cv-text :deep(.hljs-keyword),
-.cv-text :deep(.hljs-selector-tag),
-.cv-text :deep(.hljs-meta) {
-  color: var(--accent-hover);
-  font-weight: bold;
-}
-
-.cv-text :deep(.hljs-string),
-.cv-text :deep(.hljs-regexp),
-.cv-text :deep(.hljs-addition) {
-  color: var(--text);
-}
-
-.cv-text :deep(.hljs-number),
-.cv-text :deep(.hljs-literal),
-.cv-text :deep(.hljs-built_in),
-.cv-text :deep(.hljs-type) {
-  color: var(--accent-hover);
-}
-
-.cv-text :deep(.hljs-title),
-.cv-text :deep(.hljs-name),
-.cv-text :deep(.hljs-section) {
-  color: var(--text);
-  font-weight: bold;
-}
-
-.cv-text :deep(.hljs-attr),
-.cv-text :deep(.hljs-attribute),
-.cv-text :deep(.hljs-variable),
-.cv-text :deep(.hljs-template-variable) {
-  color: var(--text);
-}
-
-.cv-text :deep(.hljs-deletion),
-.cv-text :deep(.hljs-symbol) {
-  color: var(--danger);
+/* The global *{user-select:none} also hits the hljs spans inside
+   .cv-text — opt the highlighted content back in like ChatBox. */
+.cv-text :deep(*) {
+  user-select: text;
 }
 </style>

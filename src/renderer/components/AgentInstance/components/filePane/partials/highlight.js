@@ -9,6 +9,7 @@
  * Renderer-safe: no fs, no Electron imports.
  */
 import hljs from "highlight.js/lib/common";
+import "highlight.js/styles/github-dark.css";
 
 // Extension to canonical language name. hljs resolves aliases at
 // highlight time, but this function reports canonical names, so
