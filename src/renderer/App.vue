@@ -161,6 +161,7 @@ async function handleDecideAll(approved) {
   for (const change of pending) {
     await handleDecide(change.id, approved, true);
   }
+  if (approved) diffOpen.value = false;
   const left = pendingChanges.value.filter(
     (c) => c.status === "pending",
   ).length;
