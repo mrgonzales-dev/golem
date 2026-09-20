@@ -11,3 +11,4 @@ config/api_key.json
 *.swo
 *~
 .playwright-mcp/
+.temp/
