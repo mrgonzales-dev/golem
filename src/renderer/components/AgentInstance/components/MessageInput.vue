@@ -11,17 +11,25 @@
         {{ isStopMode ? "Stop" : "Send" }}
       </button>
     </div>
+    <ModelSettings
+      :modelName="modelName"
+      :effort="effort"
+      @update:effort="$emit('update:effort', $event)"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
+import ModelSettings from "./ModelSettings.vue";
 
 const props = defineProps({
   busy: { type: Boolean, default: false },
+  modelName: { type: String, default: "" },
+  effort: { type: String, default: "off" },
 });
 
-const emit = defineEmits(["send", "sendQueue", "stop"]);
+const emit = defineEmits(["send", "sendQueue", "stop", "update:effort"]);
 
 const text = ref("");
 const inputEl = ref(null);

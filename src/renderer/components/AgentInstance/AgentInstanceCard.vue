@@ -1,11 +1,14 @@
 <!--
   AgentInstanceCard.vue
   A self-contained agent card that bundles the model selector,
-  chat box, quick prompt toolbar, and message input.
+  chat box, file pane, diff box, quick prompt toolbar, and message input.
 
   Props:
     - models: Array of available model names.
     - folderPath: The shared working directory path.
+    - diffOpen: True shows the diff box in place of chat.
+    - pendingChanges: Array of pending change objects.
+    - viewingFile: Path of the open file. Shows file pane in place of chat.
 
   State owned by this card:
     - messages, queue, isResponding, selectedModel
@@ -22,8 +25,20 @@
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
     />
     <div class="chat-row">
+      <CodeViewer
+        v-if="viewingFile"
+        class="file-pane"
+        :filePath="viewingFile"
+        @close="emit('update:viewingFile', '')"
+      />
+      <DiffBox
+        v-else-if="diffOpen"
+        class="diff-pane"
+        :changes="pendingChanges"
+        @decideAll="emit('decideAll', $event)"
+      />
       <ChatBox
-        v-if="!diffOpen"
+        v-else
         class="chat-pane"
         :messages="messages"
         :queue="queue"
@@ -31,17 +46,14 @@
         @sendQueue="flushQueue"
         @focusInput="messageInput?.focus()"
       />
-      <DiffBox
-        v-else
-        class="diff-pane"
-        :changes="pendingChanges"
-        @decideAll="emit('decideAll', $event)"
-      />
     </div>
     <QuickPromptActionToolBar @send="handleSend" />
     <MessageInput
       ref="messageInput"
       :busy="isResponding"
+      :modelName="selectedModel"
+      :effort="thinkingEffort"
+      @update:effort="thinkingEffort = $event"
       @send="handleSend"
       @sendQueue="flushQueue"
       @stop="stopAgent"
@@ -56,6 +68,7 @@ import StatusBar from "./components/StatusBar.vue";
 import ChatBox from "./components/ChatBox.vue";
 import DiffBox from "./components/diffPanel/DiffBox.vue";
 import MessageInput from "./components/MessageInput.vue";
+import CodeViewer from "./components/filePane/CodeViewer.vue";
 import QuickPromptActionToolBar from "./components/QuickPromptActionToolBar.vue";
 import { applyToolCall } from "./partials/toolCalls";
 import { shouldFlush, dequeue, handleSend as queueSend } from "./partials/agentQueue";
@@ -67,11 +80,14 @@ const props = defineProps({
   folderPath: { type: String, default: "" },
   diffOpen: { type: Boolean, default: false },
   pendingChanges: { type: Array, default: () => [] },
+  viewingFile: { type: String, default: "" },
 });
 
 const emit = defineEmits([
   "update:diffOpen",
   "update:pendingChanges",
+  "update:viewingFile",
+  "openSettings",
   "decideAll",
 ]);
 
@@ -82,6 +98,8 @@ const isResponding = ref(false);
 // Restored from localStorage; validated against the fetched model
 // list in the watcher below so a stale name falls back to models[0].
 const selectedModel = ref(localStorage.getItem("selectedModel") || "");
+// Thinking effort sent as reasoning_effort. Off omits the field.
+const thinkingEffort = ref(localStorage.getItem("thinkingEffort") || "off");
 
 const pendingCount = computed(
   () => props.pendingChanges.filter((c) => c.status === "pending").length,
@@ -100,12 +118,41 @@ watch(selectedModel, (newModel) => {
   if (newModel) localStorage.setItem("selectedModel", newModel);
 });
 
+watch(thinkingEffort, (newEffort) => {
+  if (newEffort) localStorage.setItem("thinkingEffort", newEffort);
+});
+
 function handleSend(text) {
+  const clean = text.trim();
+  if (clean.startsWith("/")) {
+    runCommand(clean);
+    return;
+  }
   const result = queueSend(queue.value, isResponding.value, text);
   queue.value = result.queue;
 
   if (result.action === "send") {
     sendMessage(result.text);
+  }
+}
+
+// Local input commands. These never reach the model.
+function runCommand(text) {
+  const cmd = text.split(/\s+/)[0].toLowerCase();
+  if (cmd === "/settings") {
+    emit("openSettings");
+  } else if (cmd === "/help") {
+    messages.value.push({
+      sender: "System",
+      text: "/settings opens Settings. /help shows this list. /clear clears the chat.",
+    });
+  } else if (cmd === "/clear") {
+    messages.value = [];
+  } else {
+    messages.value.push({
+      sender: "Error",
+      text: `Unknown command "${cmd}". Type /help for the list.`,
+    });
   }
 }
 
@@ -176,7 +223,19 @@ async function sendMessage(text, sender = "You") {
 
   try {
     const { host, apiKey } = getProviderConfig();
-    const result = await window.api.chat(text, selectedModel.value, props.folderPath, host, apiKey);
+    if (!host) {
+      messages.value[thinkingId] = { sender: "Error", text: "No API host set. Open Settings and set the API host." };
+      return;
+    }
+    if (!apiKey) {
+      messages.value[thinkingId] = { sender: "Error", text: "No API key set. Open Settings and set the API key." };
+      return;
+    }
+    if (!selectedModel.value) {
+      messages.value[thinkingId] = { sender: "Error", text: "No model selected. Pick a model from the list in the top bar." };
+      return;
+    }
+    const result = await window.api.chat(text, selectedModel.value, props.folderPath, host, apiKey, thinkingEffort.value);
     if (result.ok) {
       messages.value[thinkingId] = { sender: "AI", text: result.reply };
     } else if (result.error === "Interrupted") {
@@ -212,8 +271,9 @@ onMounted(() => {
     });
   }
   if (window.api.onUsage) {
-    window.api.onUsage(({ promptTokens }) => {
-      contextTokens.value = promptTokens;
+    window.api.onUsage(({ promptTokens, totalTokens }) => {
+      // Total holds prompt plus completion plus think tokens.
+      contextTokens.value = totalTokens || promptTokens;
     });
   }
   if (window.api.onChangeStatus) {
@@ -253,7 +313,8 @@ watch(
 }
 
 .chat-pane,
-.diff-pane {
+.diff-pane,
+.file-pane {
   flex: 1;
   min-width: 0;
   min-height: 0;
