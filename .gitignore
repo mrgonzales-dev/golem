@@ -12,3 +12,4 @@ config/api_key.json
 *~
 .playwright-mcp/
 .temp/
+test/tmp-registry/
