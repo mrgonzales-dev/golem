@@ -61,8 +61,7 @@ function handleSave({ name, text }) {
 
 <style scoped>
 .quick-action-bar {
-  border: 1px solid var(--border);
-  background-color: var(--bg);
+  background-color: var(--bg-secondary);
   height: 24px;
   display: flex;
   align-items: center;
