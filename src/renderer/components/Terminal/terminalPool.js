@@ -10,6 +10,7 @@ export function acquireTerminal(ptyId) {
   if (existing) return existing;
   const host = document.createElement("div");
   host.className = "golem-xterm-host";
+  host.dataset.ptyId = ptyId;
   const term = new Terminal({ ...golemFont, theme: golemTheme });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -22,6 +23,9 @@ export function acquireTerminal(ptyId) {
 
 export function attachTerminal(entry, container) {
   if (!container || !entry) return;
+  for (const child of [...container.children]) {
+    if (child !== entry.host) child.remove();
+  }
   if (entry.host.parentElement !== container) container.appendChild(entry.host);
   if (!entry.opened) {
     entry.term.open(entry.host);
@@ -30,7 +34,11 @@ export function attachTerminal(entry, container) {
   requestAnimationFrame(() => {
     try {
       entry.fit.fit();
-      window.api?.terminalResize?.(entry.ptyId, entry.term.cols, entry.term.rows);
+      window.api?.terminalResize?.(
+        entry.ptyId,
+        entry.term.cols,
+        entry.term.rows,
+      );
     } catch {
       // Container hidden; fit on next show.
     }

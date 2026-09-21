@@ -7,14 +7,20 @@
           :key="id"
           class="terminal-tab"
           :class="{ active: id === activeId }"
-          @click="switchTab(id)"
+          @click="onSwitch(id)"
         >
           {{ id }}
         </button>
       </div>
       <div class="terminal-actions">
-        <button class="terminal-btn" @click="createTab">+</button>
-        <button class="terminal-btn" @click="killTab(activeId)" :disabled="!activeId">x</button>
+        <button
+          class="terminal-btn"
+          :class="{ active: dock === 'side' }"
+          :title="dock === 'side' ? 'Move terminal to chat' : 'Move terminal to side panel'"
+          @click="$emit('toggleDock')"
+        >◫</button>
+        <button class="terminal-btn" title="New terminal" @click="onCreate">+</button>
+        <button class="terminal-btn" title="Kill terminal" @click="onKill" :disabled="!activeId">x</button>
       </div>
     </div>
     <div ref="viewport" class="terminal-viewport"></div>
@@ -24,147 +30,82 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import "@xterm/xterm/css/xterm.css";
-import {
-  acquireTerminal,
-  attachTerminal,
-  writeToTerminal,
-  disposeTerminal,
-} from "./terminalPool";
-
-// Module scope: survives HMR remounts so ids never repeat.
-let panelCounter = 0;
+import { useTerminalTabs } from "./useTerminalTabs";
 
 const props = defineProps({
   folderPath: { type: String, default: "" },
   visible: { type: Boolean, default: false },
+  // True only for the panel that currently owns the viewport.
+  engaged: { type: Boolean, default: false },
+  dock: { type: String, default: "chat" },
 });
 
-const tabs = ref([]);
-const activeId = ref("");
+defineEmits(["toggleDock"]);
+
+const { tabs, activeId, createTab, switchTab, killTab, mountActive, ensureInit, ensureFirstTab } =
+  useTerminalTabs();
+
 const viewport = ref(null);
-let unsubData = null;
-let unsubExit = null;
 let ro = null;
 
-function nextId() {
-  panelCounter += 1;
-  return `term-${panelCounter}`;
+function mount(focus = false) {
+  if (!props.engaged) return;
+  mountActive(viewport.value, focus);
 }
 
-async function createTab() {
-  const id = nextId();
-  const entry = acquireTerminal(id);
-  tabs.value.push(id);
-  activeId.value = id;
+async function onCreate() {
+  await createTab(props.folderPath);
+
   await nextTick();
-  mountActive(true);
-  writeToTerminal(id, `\r\n[connecting ${id}...]\r\n`);
-  console.log("[terminal] bridge:", typeof window.api?.terminalCreate);
-  if (typeof window.api?.terminalCreate !== "function") {
-    writeToTerminal(id, "[terminal bridge missing: restart Electron to load new preload/IPC]\r\n");
-    return;
-  }
-  try {
-    const result = await window.api.terminalCreate(id, {
-      cwd: props.folderPath || undefined,
-      cols: entry.term.cols || 80,
-      rows: entry.term.rows || 24,
-    });
-    console.log("[terminal] create result:", JSON.stringify(result));
-    if (!result?.ok) {
-      writeToTerminal(id, `[terminal create failed: ${result?.error || "unknown"}]\r\n`);
+  mount(true);
+}
+
+function onSwitch(id) {
+  switchTab(id);
+  nextTick(() => mount(true));
+}
+
+async function onKill() {
+  const id = activeId.value;
+  await killTab(id);
+  await nextTick();
+  mount(true);
+  if (tabs.value.length === 0) onCreate();
+}
+
+watch(activeId, () => mount());
+
+watch(
+  () => props.engaged,
+  (on) => {
+    if (on) {
+      nextTick(() => mount(true));
+      ensureFirstTab(props.folderPath);
     }
-  } catch (err) {
-    writeToTerminal(id, `[terminal create failed: ${err.message}]\r\n`);
-  }
-}
-
-function switchTab(id) {
-  activeId.value = id;
-  nextTick(() => mountActive());
-}
-
-async function killTab(id) {
-  if (!id) return;
-  try {
-    await window.api?.terminalKill?.(id);
-  } catch {
-    // PTY may lag; still drop the UI.
-  }
-  disposeTerminal(id);
-  tabs.value = tabs.value.filter((t) => t !== id);
-  if (activeId.value === id) {
-    activeId.value = tabs.value[tabs.value.length - 1] || "";
-    nextTick(() => mountActive());
-  }
-  if (tabs.value.length === 0) createTab();
-}
-
-function mountActive(focus = false) {
-  if (!viewport.value || !activeId.value) return;
-  const entry = acquireTerminal(activeId.value);
-  attachTerminal(entry, viewport.value);
-  if (focus) {
-    try {
-      entry.term.focus();
-    } catch {
-      // Focus is best effort.
-    }
-  }
-}
-
-watch(activeId, () => mountActive());
+  },
+);
 
 watch(
   () => props.visible,
   (show) => {
-    if (show) nextTick(() => mountActive());
+    if (show) nextTick(() => mount());
   },
 );
 
 onMounted(async () => {
-  if (window.api?.onTerminalData) {
-    unsubData = window.api.onTerminalData(({ id, data }) => writeToTerminal(id, data));
-  }
-  if (window.api?.onTerminalExit) {
-    unsubExit = window.api.onTerminalExit(({ id, exitCode }) => {
-      writeToTerminal(id, `\r\n\u001b[2m─ process exited (code ${exitCode}) ─\u001b[0m\r\n`);
-    });
-  }
-  // Reuse live PTYs after a remount; only spawn when none exist.
-  try {
-    const list = await window.api?.terminalList?.();
-    const ids = list?.ids || [];
-    if (ids.length > 0) {
-      for (const id of ids) {
-        const num = parseInt(String(id).split("-")[1], 10);
-        if (Number.isFinite(num) && num > panelCounter) panelCounter = num;
-        acquireTerminal(id);
-        if (!tabs.value.includes(id)) tabs.value.push(id);
-      }
-      activeId.value = tabs.value[tabs.value.length - 1];
-      await nextTick();
-      mountActive(true);
-      return;
-    }
-  } catch {
-    // Fall through to fresh tab.
-  }
-  await createTab();
-  mountActive();
+  await ensureInit(props.folderPath);
+  await nextTick();
+  mount();
   if (viewport.value) {
-    ro = new ResizeObserver(() => mountActive());
+    ro = new ResizeObserver(() => mount());
     ro.observe(viewport.value);
   }
+  if (props.engaged) ensureFirstTab(props.folderPath);
 });
 
 onBeforeUnmount(() => {
-  if (unsubData) unsubData();
-  if (unsubExit) unsubExit();
   if (ro) ro.disconnect();
 });
-
-defineExpose({ createTab, killTab, switchTab });
 </script>
 
 <style scoped>
@@ -223,6 +164,10 @@ defineExpose({ createTab, killTab, switchTab });
   border-radius: 4px;
   padding: 2px 8px;
   cursor: pointer;
+}
+
+.terminal-btn.active {
+  background-color: var(--bg-tertiary);
 }
 
 .terminal-btn:disabled {

@@ -25,9 +25,26 @@
         v-model:pendingChanges="pendingChanges"
         v-model:viewingFile="viewingFile"
         :terminalVisible="terminalVisible"
+        :terminalDock="terminalDock"
         @openSettings="settingsOpen = true"
         @decideAll="handleDecideAll"
+        @toggleDock="toggleDock"
       />
+      <div
+        v-if="sideOpen"
+        class="pane-resizer"
+        :class="{ active: resizing === 'terminal' }"
+        @mousedown.prevent="startResize('terminal', $event)"
+      ></div>
+      <div v-if="sideOpen" class="terminal-side">
+        <TerminalPanel
+          :folderPath="folderPath"
+          :visible="terminalVisible"
+          :engaged="sideOpen"
+          :dock="terminalDock"
+          @toggleDock="toggleDock"
+        />
+      </div>
     </div>
     <SettingsModal
       :open="settingsOpen"
@@ -45,6 +62,8 @@ import FileBrowserPanel from "./components/FileBrowserPanel.vue";
 import TitleBar from "./components/TitleBar.vue";
 import SettingsModal from "./components/Settings/SettingsModal.vue";
 import AgentInstanceCard from "./components/AgentInstance/AgentInstanceCard.vue";
+import TerminalPanel from "./components/Terminal/TerminalPanel.vue";
+import { loadDockMode, saveDockMode, toggleDockMode } from "./components/Terminal/terminalDock";
 import { getProviderConfig, hasProviderConfig } from "./components/Settings/partials/providerConfig";
 import { loadAppState, saveAppState } from "./partials/appState";
 
@@ -62,6 +81,8 @@ const settingsOpen = ref(false);
 const browserWidth = ref(200);
 const browserVisible = ref(false);
 const terminalVisible = ref(false);
+const terminalDock = ref("chat");
+const terminalWidth = ref(420);
 const resizing = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;
@@ -69,18 +90,29 @@ let resizeStartWidth = 0;
 const BROWSER_MIN = 140;
 const BROWSER_MAX = 480;
 const AGENT_MIN = 280;
+const TERMINAL_MIN = 280;
+const TERMINAL_MAX = 800;
 
-const parentStyle = computed(() => ({
-  gridTemplateColumns: browserVisible.value
-    ? `${browserWidth.value}px 8px minmax(0, 1fr)`
-    : `minmax(0, 1fr)`,
-}));
+const sideOpen = computed(
+  () => terminalVisible.value && terminalDock.value === "side",
+);
+
+const parentStyle = computed(() => {
+  const left = browserVisible.value ? `${browserWidth.value}px 8px ` : "";
+  const right = sideOpen.value ? ` 8px ${terminalWidth.value}px` : "";
+  return { gridTemplateColumns: `${left}minmax(0, 1fr)${right}` };
+});
+
+function toggleDock() {
+  terminalDock.value = saveDockMode(localStorage, toggleDockMode(terminalDock.value));
+}
 
 function startResize(pane, event) {
   if (pane === "browser" && !browserVisible.value) return;
+  if (pane === "terminal" && !sideOpen.value) return;
   resizing.value = pane;
   resizeStartX = event.clientX;
-  resizeStartWidth = browserWidth.value;
+  resizeStartWidth = pane === "terminal" ? terminalWidth.value : browserWidth.value;
   window.addEventListener("mousemove", onResizeMove);
   window.addEventListener("mouseup", stopResize);
 }
@@ -95,9 +127,23 @@ function onResizeMove(event) {
       window.innerWidth - 16 - AGENT_MIN,
     );
   }
+  if (resizing.value === "terminal") {
+    terminalWidth.value = Math.min(
+      Math.max(resizeStartWidth - delta, TERMINAL_MIN),
+      TERMINAL_MAX,
+      window.innerWidth - 16 - AGENT_MIN,
+    );
+  }
 }
 
 function stopResize() {
+  if (resizing.value === "terminal") {
+    try {
+      localStorage.setItem("terminalWidth", String(terminalWidth.value));
+    } catch {
+      // Private mode; keep memory value only.
+    }
+  }
   resizing.value = null;
   window.removeEventListener("mousemove", onResizeMove);
   window.removeEventListener("mouseup", stopResize);
@@ -194,6 +240,15 @@ onMounted(async () => {
     Math.max(saved.browserWidth, BROWSER_MIN),
     BROWSER_MAX,
   );
+  terminalDock.value = loadDockMode(localStorage);
+  try {
+    const savedWidth = parseInt(localStorage.getItem("terminalWidth"), 10);
+    if (Number.isFinite(savedWidth)) {
+      terminalWidth.value = Math.min(Math.max(savedWidth, TERMINAL_MIN), TERMINAL_MAX);
+    }
+  } catch {
+    // Keep default width.
+  }
   loadModels();
   if (window.api?.loadLatestSession) {
     try {

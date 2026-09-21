@@ -26,12 +26,15 @@
     />
     <div class="chat-row">
       <TerminalPanel
-        v-show="terminalVisible"
+        v-show="terminalVisible && terminalDock === 'chat'"
         class="terminal-pane"
         :folderPath="folderPath"
         :visible="terminalVisible"
+        :engaged="terminalVisible && terminalDock === 'chat'"
+        :dock="terminalDock"
+        @toggleDock="emit('toggleDock')"
       />
-      <template v-if="!terminalVisible">
+      <template v-if="!(terminalVisible && terminalDock === 'chat')">
       <CodeViewer
         v-if="viewingFile"
         class="file-pane"
@@ -55,9 +58,9 @@
       />
       </template>
     </div>
-    <QuickPromptActionToolBar v-if="!terminalVisible" @send="handleSend" />
+    <QuickPromptActionToolBar v-if="!chatHiddenByTerminal" @send="handleSend" />
     <MessageInput
-      v-if="!terminalVisible"
+      v-if="!chatHiddenByTerminal"
       ref="messageInput"
       :busy="isResponding"
       :modelName="selectedModel"
@@ -96,6 +99,7 @@ const props = defineProps({
   pendingChanges: { type: Array, default: () => [] },
   viewingFile: { type: String, default: "" },
   terminalVisible: { type: Boolean, default: false },
+  terminalDock: { type: String, default: "chat" },
 });
 
 const emit = defineEmits([
@@ -104,7 +108,12 @@ const emit = defineEmits([
   "update:viewingFile",
   "openSettings",
   "decideAll",
+  "toggleDock",
 ]);
+
+const chatHiddenByTerminal = computed(
+  () => props.terminalVisible && props.terminalDock === "chat",
+);
 
 const messages = ref([]);
 const queue = ref([]);

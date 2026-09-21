@@ -102,6 +102,16 @@ html, body {
   user-select: none !important;
 }
 
+.terminal-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background-color: var(--bg-deep);
+  border-left: 1px solid var(--bg-tertiary);
+}
+
 ::selection {
   background: var(--text);
   color: var(--bg);
