@@ -26,8 +26,8 @@ const rendered = computed(() => md.render(props.text));
 .markdown-body {
   background-color: transparent;
   color: var(--text);
-  --fontStack-sansSerif: "Space Mono", monospace;
-  --fontStack-monospace: "Space Mono", monospace;
+  --fontStack-sansSerif: "Fira Code", monospace;
+  --fontStack-monospace: "Fira Code", monospace;
   --fgColor-default: var(--text);
   --fgColor-muted: var(--text-secondary);
   --fgColor-accent: var(--text);

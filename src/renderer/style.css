@@ -4,18 +4,18 @@
   --bg: #111111;
   --bg-secondary: #181818;
   --bg-tertiary: #242424;
-  --text: #c9c9c9;
-  --text-secondary: #8f8f8f;
+  --text: #f0f0f0;
+  --text-secondary: #a3a3a3;
   --border: #b0b0b0;
-  --accent: #c9c9c9;
-  --accent-hover: #e0e0e0;
-  --success: #c9c9c9;
+  --accent: #f0f0f0;
+  --accent-hover: #ffffff;
+  --success: #f0f0f0;
   --danger: #7a7a7a;
   --warning: #ababab;
   --user-bubble-bg: #242424;
-  --user-bubble-text: #c9c9c9;
+  --user-bubble-text: #f0f0f0;
   --ai-bubble-bg: #181818;
-  --ai-bubble-text: #c9c9c9;
+  --ai-bubble-text: #f0f0f0;
 }
 
 html, body {
@@ -25,7 +25,10 @@ html, body {
   overflow: hidden;
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
+  font-feature-settings: "calt" 1, "liga" 1;
+  font-variant-ligatures: contextual;
+  line-height: 1.5;
 }
 
 ::-webkit-scrollbar {
@@ -64,7 +67,7 @@ html, body {
   overflow: hidden;
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
 }
 
 .parent {
@@ -78,7 +81,7 @@ html, body {
   padding: 8px;
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
 }
 
 .pane-resizer {
@@ -149,7 +152,7 @@ html, body {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
   font-size: 12px;
   padding: 2px 6px;
   cursor: pointer;
@@ -192,7 +195,7 @@ html, body {
   background-color: transparent;
   color: var(--text);
   border: none;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
   font-size: 12px;
   padding: 2px 6px;
   cursor: pointer;
@@ -237,7 +240,7 @@ html, body {
   border: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   outline: none;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
   font-size: 12px;
   padding: 6px 8px;
   box-sizing: border-box;
@@ -259,7 +262,7 @@ html, body {
 .model-option {
   padding: 4px 8px;
   font-size: 12px;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -302,8 +305,9 @@ textarea {
   resize: none;
   border: none;
   outline: none;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
   font-size: 14px;
+  line-height: 1.5;
   background-color: var(--bg-tertiary);
   color: var(--text);
   padding: 4px;
@@ -318,7 +322,7 @@ button {
   color: var(--bg);
   border: none;
   border-radius: 6px;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
 }
 
 button:hover {
@@ -339,6 +343,7 @@ button:hover {
   border-radius: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .msg-ai {
@@ -359,6 +364,7 @@ button:hover {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .msg-error {

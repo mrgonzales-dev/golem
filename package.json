@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@ff-labs/fff-node": "^0.10.6",
-    "@fontsource/space-mono": "^5.3.0",
+    "@fontsource/fira-code": "^5.3.0",
     "axios": "^1.20.0",
     "github-markdown-css": "^5.9.0",
     "highlight.js": "^11.12.0",

@@ -28,7 +28,7 @@ defineEmits(["sendQueue", "interrupt"]);
   border-top: 1px solid var(--border);
   background-color: var(--bg);
   padding: 4px 8px;
-  font-family: "Space Mono", monospace;
+  font-family: "Fira Code", monospace;
   font-size: 12px;
   color: var(--text-secondary);
   flex-shrink: 0;
