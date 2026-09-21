@@ -102,8 +102,8 @@ const isResponding = ref(false);
 // Restored from localStorage; validated against the fetched model
 // list in the watcher below so a stale name falls back to models[0].
 const selectedModel = ref(localStorage.getItem("selectedModel") || "");
-// Thinking effort sent as reasoning_effort. Off omits the field.
-const thinkingEffort = ref(localStorage.getItem("thinkingEffort") || "off");
+// Thinking effort sent as reasoning_effort. Default omits the field.
+const thinkingEffort = ref(localStorage.getItem("thinkingEffort") || "default");
 
 const pendingCount = computed(
   () => props.pendingChanges.filter((c) => c.status === "pending").length,
@@ -119,18 +119,26 @@ const contextMax = computed(
 );
 
 // Effort options follow the model's catalog entry. reasoning:false
-// leaves only Off; unknown models keep the permissive default and
+// leaves only Default; unknown models keep the permissive default and
 // the chat retry strips the field if the provider rejects it.
 const effortOptions = computed(() => {
   const meta = props.modelMetaMap[selectedModel.value];
-  if (!meta) return ["off", "low", "medium", "high"];
-  if (meta.reasoning === false) return ["off"];
-  return ["off", ...(meta.efforts.length ? meta.efforts : ["low", "medium", "high"])];
+  if (!meta) return ["default", "low", "medium", "high"];
+  if (meta.reasoning === false) return ["default"];
+  return ["default", ...(meta.efforts.length ? meta.efforts : ["low", "medium", "high"])];
 });
 
-watch(effortOptions, (options) => {
-  if (!options.includes(thinkingEffort.value)) thinkingEffort.value = "off";
-});
+// Falls back to the first listed effort — "default" keeps the choice safe
+// when the model changes or the catalog lacks the saved value.
+watch(
+  effortOptions,
+  (options) => {
+    if (!options.includes(thinkingEffort.value)) {
+      thinkingEffort.value = options[0];
+    }
+  },
+  { immediate: true },
+);
 
 watch(selectedModel, (newModel) => {
   if (newModel) localStorage.setItem("selectedModel", newModel);

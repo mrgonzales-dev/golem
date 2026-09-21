@@ -27,8 +27,8 @@ import ModelSettings from "./ModelSettings.vue";
 const props = defineProps({
   busy: { type: Boolean, default: false },
   modelName: { type: String, default: "" },
-  effort: { type: String, default: "off" },
-  effortOptions: { type: Array, default: () => ["off", "low", "medium", "high"] },
+  effort: { type: String, default: "default" },
+  effortOptions: { type: Array, default: () => ["default", "low", "medium", "high"] },
 });
 
 const emit = defineEmits(["send", "sendQueue", "stop", "update:effort"]);

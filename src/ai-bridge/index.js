@@ -95,7 +95,7 @@ async function chat(
     stream_options: { include_usage: true },
   };
 
-  if (effort && effort !== "off") {
+  if (effort && effort !== "default" && effort !== "off") {
     fullBody.reasoning_effort = effort;
   }
 

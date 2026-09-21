@@ -46,7 +46,7 @@ const handlers = [
           title: session.title,
           folderPath: session.folderPath || "",
           selectedModel: session.selectedModel || "",
-          thinkingEffort: session.thinkingEffort || "off",
+          thinkingEffort: session.thinkingEffort || "default",
           messages: session.messages || [],
           // Same card shape the live agent:change event emits.
           pendingChanges: (session.pendingChanges || []).map(

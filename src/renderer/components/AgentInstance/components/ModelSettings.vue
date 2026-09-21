@@ -9,7 +9,7 @@
         @change="$emit('update:effort', $event.target.value)"
       >
         <option v-for="o in effortOptions" :key="o" :value="o">
-          {{ o === "off" ? "Off" : o[0].toUpperCase() + o.slice(1) }}
+          {{ o === "default" ? "Default" : o[0].toUpperCase() + o.slice(1) }}
         </option>
       </select>
       <span class="ms-arrow">▼</span>
@@ -20,8 +20,8 @@
 <script setup>
 defineProps({
   modelName: { type: String, default: "" },
-  effort: { type: String, default: "off" },
-  effortOptions: { type: Array, default: () => ["off", "low", "medium", "high"] },
+  effort: { type: String, default: "default" },
+  effortOptions: { type: Array, default: () => ["default", "low", "medium", "high"] },
 });
 
 defineEmits(["update:effort"]);
