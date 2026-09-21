@@ -8,15 +8,19 @@
       </div>
       <MenuBar
         :browserVisible="browserVisible"
+        :terminalVisible="terminalVisible"
         @openSettings="$emit('openSettings')"
         @toggleBrowser="$emit('toggleBrowser')"
+        @toggleTerminal="$emit('toggleTerminal')"
       />
     </template>
     <template v-else>
       <MenuBar
         :browserVisible="browserVisible"
+        :terminalVisible="terminalVisible"
         @openSettings="$emit('openSettings')"
         @toggleBrowser="$emit('toggleBrowser')"
+        @toggleTerminal="$emit('toggleTerminal')"
       />
       <div class="traffic-lights">
         <button class="traffic-light traffic-light-minimize" @click="minimize"></button>
@@ -33,9 +37,10 @@ import MenuBar from "./MenuBar.vue";
 
 defineProps({
   browserVisible: { type: Boolean, default: true },
+  terminalVisible: { type: Boolean, default: false },
 });
 
-defineEmits(["openSettings", "toggleBrowser"]);
+defineEmits(["openSettings", "toggleBrowser", "toggleTerminal"]);
 
 const isMac = computed(() => window.api?.platform === "darwin");
 

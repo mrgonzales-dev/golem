@@ -2,8 +2,10 @@
   <div class="app-shell">
     <TitleBar
       :browserVisible="browserVisible"
+      :terminalVisible="terminalVisible"
       @openSettings="settingsOpen = true"
       @toggleBrowser="browserVisible = !browserVisible"
+      @toggleTerminal="terminalVisible = !terminalVisible"
     />
     <div class="parent" :class="{ resizing: resizing }" :style="parentStyle">
       <FileBrowserPanel v-if="browserVisible" ref="fileBrowser" :folderPath="folderPath" @selectFolder="selectFolder" @settingsSaved="loadModels" @openFile="viewingFile = $event" @toggleBrowser="browserVisible = false" />
@@ -22,6 +24,7 @@
         v-model:diffOpen="diffOpen"
         v-model:pendingChanges="pendingChanges"
         v-model:viewingFile="viewingFile"
+        :terminalVisible="terminalVisible"
         @openSettings="settingsOpen = true"
         @decideAll="handleDecideAll"
       />
@@ -58,6 +61,7 @@ const settingsOpen = ref(false);
 
 const browserWidth = ref(200);
 const browserVisible = ref(false);
+const terminalVisible = ref(false);
 const resizing = ref(null);
 let resizeStartX = 0;
 let resizeStartWidth = 0;

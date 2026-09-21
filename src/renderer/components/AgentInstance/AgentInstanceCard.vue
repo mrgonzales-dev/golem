@@ -25,6 +25,13 @@
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
     />
     <div class="chat-row">
+      <TerminalPanel
+        v-show="terminalVisible"
+        class="terminal-pane"
+        :folderPath="folderPath"
+        :visible="terminalVisible"
+      />
+      <template v-if="!terminalVisible">
       <CodeViewer
         v-if="viewingFile"
         class="file-pane"
@@ -46,9 +53,11 @@
         @sendQueue="flushQueue"
         @focusInput="messageInput?.focus()"
       />
+      </template>
     </div>
-    <QuickPromptActionToolBar @send="handleSend" />
+    <QuickPromptActionToolBar v-if="!terminalVisible" @send="handleSend" />
     <MessageInput
+      v-if="!terminalVisible"
       ref="messageInput"
       :busy="isResponding"
       :modelName="selectedModel"
@@ -67,6 +76,7 @@ import { ref, computed, watch, onMounted } from "vue";
 
 import StatusBar from "./components/StatusBar.vue";
 import ChatBox from "./components/ChatBox.vue";
+import TerminalPanel from "../Terminal/TerminalPanel.vue";
 import DiffBox from "./components/diffPanel/DiffBox.vue";
 import MessageInput from "./components/MessageInput.vue";
 import CodeViewer from "./components/filePane/CodeViewer.vue";
@@ -85,6 +95,7 @@ const props = defineProps({
   diffOpen: { type: Boolean, default: false },
   pendingChanges: { type: Array, default: () => [] },
   viewingFile: { type: String, default: "" },
+  terminalVisible: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -369,7 +380,8 @@ watch(
 
 .chat-pane,
 .diff-pane,
-.file-pane {
+.file-pane,
+.terminal-pane {
   flex: 1;
   min-width: 0;
   min-height: 0;

@@ -80,4 +80,19 @@ contextBridge.exposeInMainWorld("api", {
   listSessions: () => ipcRenderer.invoke("session:list"),
   newSession: () => ipcRenderer.invoke("session:new"),
   deleteSession: (id) => ipcRenderer.invoke("session:delete", id),
+  terminalCreate: (id, opts) => ipcRenderer.invoke("terminal:create", { id, ...opts }),
+  terminalWrite: (id, data) => ipcRenderer.invoke("terminal:write", { id, data }),
+  terminalResize: (id, cols, rows) => ipcRenderer.invoke("terminal:resize", { id, cols, rows }),
+  terminalKill: (id) => ipcRenderer.invoke("terminal:kill", { id }),
+  terminalList: () => ipcRenderer.invoke("terminal:list"),
+  onTerminalData: (callback) => {
+    const listener = (_e, data) => callback(data);
+    ipcRenderer.on("terminal:data", listener);
+    return () => ipcRenderer.removeListener("terminal:data", listener);
+  },
+  onTerminalExit: (callback) => {
+    const listener = (_e, data) => callback(data);
+    ipcRenderer.on("terminal:exit", listener);
+    return () => ipcRenderer.removeListener("terminal:exit", listener);
+  },
 });

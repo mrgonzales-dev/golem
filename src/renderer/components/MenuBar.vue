@@ -5,7 +5,11 @@
       :class="{ active: browserVisible }"
       @click="$emit('toggleBrowser')"
     >Browser</button>
-    <button class="menu-item" disabled>Terminal</button>
+    <button
+      class="menu-item"
+      :class="{ active: terminalVisible }"
+      @click="$emit('toggleTerminal')"
+    >Terminal</button>
     <button class="menu-item" @click="$emit('openSettings')">Settings</button>
   </div>
 </template>
@@ -13,9 +17,10 @@
 <script setup>
 defineProps({
   browserVisible: { type: Boolean, default: true },
+  terminalVisible: { type: Boolean, default: false },
 });
 
-defineEmits(["openSettings", "toggleBrowser"]);
+defineEmits(["openSettings", "toggleBrowser", "toggleTerminal"]);
 </script>
 
 <style scoped>

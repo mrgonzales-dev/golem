@@ -12,6 +12,7 @@ const settings = require("./components/settings");
 const changes = require("./components/changes");
 const file = require("./components/file");
 const session = require("../session-system/sessionIpc");
+const terminal = require("../terminal-system/terminalIpc");
 
 const handlers = [
   agent,
@@ -22,6 +23,7 @@ const handlers = [
   changes,
   file,
   ...session.handlers,
+  ...terminal.handlers,
 ];
 
 function registerIpcHandlers() {
