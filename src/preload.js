@@ -23,7 +23,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
-  chat: (message, model, folderPath, host, apiKey, effort) =>
+  chat: (message, model, folderPath, host, apiKey, effort, contextMax) =>
     ipcRenderer.invoke("agent", {
       message,
       model,
@@ -31,7 +31,14 @@ contextBridge.exposeInMainWorld("api", {
       host,
       apiKey,
       effort,
+      contextMax,
     }),
+  onPlan: (callback) => {
+    const listener = (_e, data) => callback(data);
+    ipcRenderer.on("agent:plan", listener);
+    return () => ipcRenderer.removeListener("agent:plan", listener);
+  },
+  clearPlan: () => ipcRenderer.invoke("agent:plan:clear"),
   onThinking: (callback) => {
     const listener = (_e, data) => callback(data);
     ipcRenderer.on("agent:thinking", listener);
