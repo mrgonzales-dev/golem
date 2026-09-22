@@ -6,9 +6,18 @@ AI coding agent. Proposes file changes as diffs and writes them only after appro
 
 1. The agent calls `updateFile` or `writeFile`.
 2. The change is staged in memory as a diff card.
-3. The card opens in the diff pane for review.
+3. A read-only preview of the card shows in the chat. Open the Diff pane by hand to decide.
 4. Approve writes the file. Reject discards it.
 5. Edits to the same file merge into one card.
+
+## Agent loop
+
+- The system prompt carries a project map: top-level entries, toolchain commands, git status, and the head of `AGENTS.md` or `README.md`.
+- The model plans with `updatePlan`. The plan shows in the tasks pane inside the chat. Click a task to drop it into the input as a chip.
+- Reasoning (`reasoning_content`) is echoed back on tool-call turns for interleaved-thinking models.
+- Old tool output is pruned at 70% of the context window. At 85% the history is compacted into a summary.
+- Read-only tools in one batch run concurrently. Repeated identical calls halt the loop.
+- Default skills in `src/default_skills/<name>/skill.md` are playbooks the model loads with `invokeSkill`. User-added skills come later.
 
 ## Prerequisites
 
@@ -65,8 +74,21 @@ golem/
   src/
     config.js                      # API config and model loader
     preload.js                     # IPC bridge to renderer
-    tools.js                       # Tool definitions (readFile, fileSearch, fileGrep, listDirectory, updateFile, writeFile, invokeSkill)
+    tools.js                       # Re-export of tool-system/
+    prompts.js                     # System prompt sections and the project map
     thinking-texts.js              # Thinking status text
+    tool-system/
+      index.js                     # Joins groups into toolDefinitions and toolFunctions
+      shared.js                    # resolvePath, requireFolder, clampResults, read tracker
+      read.js                      # readFile, listDirectory
+      search.js                    # fileSearch, fileGrep, globToRegExp
+      write.js                     # updateFile, writeFile
+      command.js                   # runCommand
+      plan.js                      # updatePlan, renderPlan
+      skills.js                    # invokeSkill, listSkillNames
+    context-system/
+      compaction.js                # Tool-output pruning and summary compaction
+    default_skills/                # Default skill playbooks: explore-repo, write-test, safe-refactor, debug-failure
     diff-system/
       diff.js                      # Hunk and line diff builders
       pendingChanges.js            # Pending proposal store; guarded approval writes
@@ -75,7 +97,8 @@ golem/
     ipc/
       index.js                     # IPC channel registry
       components/
-        agent.js                   # AgentSession; chat handler
+        agent.js                   # AgentSession; chat handler and tool loop
+        repeatGuard.js             # Repeat-call guard for one turn
         changes.js                 # change:decide approval handler
         dialog.js                  # Native dialog IPC
         folder.js                  # Folder read IPC
@@ -99,8 +122,10 @@ golem/
             quickPrompts.js        # Quick prompt definitions
             toolCalls.js           # Tool call message grouping
           components/
-            ChatBox.vue            # Message list
-            MessageInput.vue       # Input textarea
+            ChatBox.vue            # Message list, inline diff previews, tasks pane
+            MessageInput.vue       # Input editor; paste and task chips
+            tasksPane/
+              TasksPane.vue        # Agent plan checklist; click a task for a chip
             StatusBar.vue          # Model selector and diff toggle
             QueueBar.vue           # Queued message bar
             QuickPromptActionToolBar.vue
