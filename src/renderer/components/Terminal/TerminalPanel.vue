@@ -9,7 +9,7 @@
           :class="{ active: id === activeId }"
           @click="onSwitch(id)"
         >
-          {{ id }}
+          {{ id }}<em @click.stop="onKill(id)" title="Kill terminal">x</em>
         </button>
       </div>
       <div class="terminal-actions">
@@ -20,7 +20,7 @@
           @click="$emit('toggleDock')"
         >◫</button>
         <button class="terminal-btn" title="New terminal" @click="onCreate">+</button>
-        <button class="terminal-btn" title="Kill terminal" @click="onKill" :disabled="!activeId">x</button>
+        <button class="terminal-btn" title="Close terminal" @click="$emit('close')">x</button>
       </div>
     </div>
     <div ref="viewport" class="terminal-viewport"></div>
@@ -40,7 +40,7 @@ const props = defineProps({
   dock: { type: String, default: "chat" },
 });
 
-defineEmits(["toggleDock"]);
+defineEmits(["toggleDock", "close"]);
 
 const { tabs, activeId, createTab, switchTab, killTab, mountActive, ensureInit, ensureFirstTab } =
   useTerminalTabs();
@@ -65,8 +65,8 @@ function onSwitch(id) {
   nextTick(() => mount(true));
 }
 
-async function onKill() {
-  const id = activeId.value;
+async function onKill(id) {
+  if (!id) return;
   await killTab(id);
   await nextTick();
   mount(true);
@@ -151,6 +151,25 @@ onBeforeUnmount(() => {
   border-color: var(--border);
 }
 
+.terminal-tab em {
+  font-style: normal;
+  margin-left: 6px;
+  padding: 0 2px;
+  color: var(--text-secondary);
+}
+
+.terminal-tab em:hover {
+  color: var(--text);
+}
+
+.terminal-tab.active em {
+  color: var(--text-secondary);
+}
+
+.terminal-tab.active em:hover {
+  color: var(--text);
+}
+
 .terminal-actions {
   display: flex;
   gap: 4px;
@@ -159,15 +178,20 @@ onBeforeUnmount(() => {
 
 .terminal-btn {
   background: none;
-  border: 1px solid var(--border);
-  color: var(--text);
+  border: none;
+  color: var(--text-secondary);
   border-radius: 4px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   cursor: pointer;
+  font-size: 13px;
+}
+
+.terminal-btn:hover {
+  color: var(--text);
 }
 
 .terminal-btn.active {
-  background-color: var(--bg-tertiary);
+  color: var(--text);
 }
 
 .terminal-btn:disabled {

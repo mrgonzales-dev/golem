@@ -33,6 +33,7 @@
         :engaged="terminalVisible && terminalDock === 'chat'"
         :dock="terminalDock"
         @toggleDock="emit('toggleDock')"
+        @close="emit('closeTerminal')"
       />
       <template v-if="!(terminalVisible && terminalDock === 'chat')">
       <CodeViewer
@@ -109,6 +110,7 @@ const emit = defineEmits([
   "openSettings",
   "decideAll",
   "toggleDock",
+  "closeTerminal",
 ]);
 
 const chatHiddenByTerminal = computed(

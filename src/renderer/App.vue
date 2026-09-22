@@ -29,6 +29,7 @@
         @openSettings="settingsOpen = true"
         @decideAll="handleDecideAll"
         @toggleDock="toggleDock"
+        @closeTerminal="terminalVisible = false"
       />
       <div
         v-if="sideOpen"
@@ -43,6 +44,7 @@
           :engaged="sideOpen"
           :dock="terminalDock"
           @toggleDock="toggleDock"
+          @close="terminalVisible = false"
         />
       </div>
     </div>
