@@ -31,6 +31,28 @@ export function chipLabel(block) {
   return `[Pasted ~${block.lines} lines]`;
 }
 
+/**
+ * A task from the plan pane, as a chip block. The model receives the
+ * step number, its text, and its status so "this task" is unambiguous.
+ * @param {{text: string, status: string}} step - The plan step.
+ * @param {number} index - Zero-based position in the plan.
+ * @returns {{id: number, text: string, lines: number, task: number}} The block.
+ */
+export function makeTaskBlock(step, index) {
+  seq += 1;
+  const n = index + 1;
+  return {
+    id: seq,
+    text: `Task ${n} (${step.status}): ${step.text}`,
+    lines: 1,
+    task: n,
+  };
+}
+
+export function taskChipLabel(block) {
+  return `[Task ${block.task}]`;
+}
+
 function nodeText(node, byId) {
   if (node.nodeType === 3) return node.nodeValue || "";
   if (node.nodeType !== 1) return "";

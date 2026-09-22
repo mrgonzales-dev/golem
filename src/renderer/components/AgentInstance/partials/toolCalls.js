@@ -23,6 +23,7 @@ export function toolLabel(toolName) {
     updateFile: "Update",
     writeFile: "Write",
     runCommand: "Run",
+    updatePlan: "Plan",
   };
   return labels[toolName] || toolName;
 }
@@ -43,9 +44,11 @@ export function formatToolArgs(toolName, args) {
       return `${args.filePath || ""}${range}`;
     }
     case "fileSearch":
-      return `"${args.query}" in ${args.basePath}`;
-    case "fileGrep":
-      return `"${args.query}" in ${args.basePath}`;
+      return `"${args.query}" in ${args.basePath || "working directory"}`;
+    case "fileGrep": {
+      const scope = args.glob ? ` (${args.glob})` : "";
+      return `"${args.query}" in ${args.basePath || "working directory"}${scope}`;
+    }
     case "listDirectory":
       return args.dirPath || "working directory";
     case "updateFile":
@@ -55,6 +58,14 @@ export function formatToolArgs(toolName, args) {
       return args.skillName || "list";
     case "runCommand":
       return `$ ${args.command || ""}`;
+    case "updatePlan": {
+      const steps = Array.isArray(args.steps) ? args.steps : [];
+      if (steps.length === 0) return "cleared";
+      const done = steps.filter(
+        (s) => s.status === "done" || s.status === "verified",
+      ).length;
+      return `${done}/${steps.length} steps`;
+    }
     default:
       return JSON.stringify(args);
   }

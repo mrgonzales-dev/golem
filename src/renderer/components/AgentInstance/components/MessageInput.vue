@@ -30,6 +30,8 @@ import {
   shouldChip,
   makeBlock,
   chipLabel,
+  makeTaskBlock,
+  taskChipLabel,
   readNodes,
 } from "../partials/pastedBlocks";
 
@@ -65,6 +67,7 @@ const isStopMode = computed(() => {
 
 defineExpose({
   focus: () => editor.value?.focus(),
+  insertTaskChip,
 });
 
 function onPrimary() {
@@ -112,21 +115,34 @@ function insertNode(node) {
   sel.addRange(range);
 }
 
+// One atomic chip span at the caret. readNodes swaps the chip for its
+// block text on send, so the class must keep "paste-chip".
+function insertChip(block, label, extraClass) {
+  blocks.value.push(block);
+  const chip = document.createElement("span");
+  chip.className = extraClass ? `paste-chip ${extraClass}` : "paste-chip";
+  chip.dataset.bid = String(block.id);
+  chip.contentEditable = "false";
+  chip.textContent = label;
+  chip.title = block.text.slice(0, 200);
+  insertNode(chip);
+  insertNode(document.createTextNode(" "));
+  onInput();
+}
+
 function onPaste(event) {
   const pasted = event.clipboardData?.getData("text") || "";
   if (!shouldChip(pasted)) return;
   event.preventDefault();
   const block = makeBlock(pasted);
-  blocks.value.push(block);
-  const chip = document.createElement("span");
-  chip.className = "paste-chip";
-  chip.dataset.bid = String(block.id);
-  chip.contentEditable = "false";
-  chip.textContent = chipLabel(block);
-  chip.title = pasted.slice(0, 200);
-  insertNode(chip);
-  insertNode(document.createTextNode(" "));
-  onInput();
+  insertChip(block, chipLabel(block));
+}
+
+// A task clicked in the plan pane lands as a blue chip so the user
+// can point the model at it.
+function insertTaskChip(step, index) {
+  const block = makeTaskBlock(step, index);
+  insertChip(block, taskChipLabel(block), "task-chip");
 }
 
 function onInput() {
@@ -182,5 +198,9 @@ button.stop {
   padding: 0 2px;
   user-select: none;
   white-space: nowrap;
+}
+
+.editor :deep(.paste-chip.task-chip) {
+  color: #58a6ff;
 }
 </style>
