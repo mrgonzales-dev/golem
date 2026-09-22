@@ -73,6 +73,21 @@ async function drainErrorBody(err) {
 }
 
 /**
+ * Copy of the messages without reasoning_content on assistant turns.
+ * Interleaved-thinking providers want the field echoed back; others
+ * reject unknown keys, so the fallback chain sends this copy.
+ * @param {object[]} messages - The API message history.
+ * @returns {object[]} A new array; unchanged messages are shared.
+ */
+function stripReasoning(messages) {
+  return messages.map((m) => {
+    if (!m.reasoning_content) return m;
+    const { reasoning_content, ...rest } = m;
+    return rest;
+  });
+}
+
+/**
  * Streaming chat completion.
  *
  * Calls onProgress({ content, toolCalls, usage }) as chunks arrive
@@ -104,8 +119,8 @@ async function chat(
   }
 
   // Bodies from richest to plainest. Some upstream servers reject
-  // stream_options, reasoning_effort, or tools, so retry stripped
-  // on a 4xx refusal.
+  // stream_options, reasoning_effort, reasoning_content on assistant
+  // turns, or tools, so retry stripped on a 4xx refusal.
   const bodies = [fullBody];
   const noStream = { ...fullBody };
   delete noStream.stream_options;
@@ -115,8 +130,15 @@ async function chat(
     delete noEffort.reasoning_effort;
     bodies.push(noEffort);
   }
+  const hasReasoning = messages.some((m) => m.reasoning_content);
+  if (hasReasoning) {
+    const noReasoning = { ...noStream, messages: stripReasoning(messages) };
+    delete noReasoning.reasoning_effort;
+    bodies.push(noReasoning);
+  }
   if (fullBody.tools) {
     const noTools = { ...noStream };
+    if (hasReasoning) noTools.messages = stripReasoning(messages);
     delete noTools.reasoning_effort;
     delete noTools.tools;
     bodies.push(noTools);
@@ -276,4 +298,4 @@ async function chat(
   };
 }
 
-module.exports = { chat };
+module.exports = { chat, stripReasoning };
