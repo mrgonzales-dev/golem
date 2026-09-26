@@ -90,7 +90,7 @@ class AgentSession {
 
   async handle(
     event,
-    { message, model, folderPath, host, apiKey, effort, contextMax },
+    { message, model, folderPath, host, apiKey, effort, contextMax, sessionHeader, requestHeader, extraHeaders },
   ) {
     if (!host) {
       return {
@@ -114,7 +114,7 @@ class AgentSession {
     // mints only a fresh request id, mirroring x-opencode-request.
     const sid = this.sessionId;
     const rid = randomUUID();
-    const chatConfig = { host, apiKey, sessionId: sid, requestId: rid, effort };
+    const chatConfig = { host, apiKey, sessionId: sid, requestId: rid, effort, sessionHeader, requestHeader, extraHeaders };
     // Setup: timing, token tracking, abort controller
     const startTime = Date.now();
     let totalTokens = 0;

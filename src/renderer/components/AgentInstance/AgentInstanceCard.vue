@@ -330,7 +330,8 @@ async function sendMessage(text, sender = "You") {
   }
 
   try {
-    const { host, apiKey } = getProviderConfig();
+    const { host, apiKey, sessionHeader, requestHeader, extraHeaders } =
+      getProviderConfig();
     if (!host) {
       messages.value[turn.thinkingId] = { sender: "Error", text: "No API host set. Open Settings and set the API host." };
       return;
@@ -354,6 +355,7 @@ async function sendMessage(text, sender = "You") {
       apiKey,
       thinkingEffort.value,
       knownMax,
+      { sessionHeader, requestHeader, extraHeaders },
     );
     if (result.ok) {
       messages.value[turn.thinkingId] = { sender: "AI", text: result.reply };

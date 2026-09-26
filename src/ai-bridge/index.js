@@ -73,6 +73,22 @@ async function drainErrorBody(err) {
 }
 
 /**
+ * Parse user-supplied extra headers, one "Name: value" per line.
+ * Blank or malformed lines are skipped. These sit last in the header
+ * object, so an explicit entry can override a built-in name.
+ */
+function parseExtraHeaders(raw) {
+  const out = {};
+  for (const line of String(raw || "").split("\n")) {
+    const i = line.indexOf(":");
+    if (i <= 0) continue;
+    const name = line.slice(0, i).trim();
+    if (name) out[name] = line.slice(i + 1).trim();
+  }
+  return out;
+}
+
+/**
  * Copy of the messages without reasoning_content on assistant turns.
  * Interleaved-thinking providers want the field echoed back; others
  * reject unknown keys, so the fallback chain sends this copy.
@@ -102,6 +118,16 @@ async function chat(
   config,
 ) {
   const { host, apiKey, sessionId, requestId, effort } = config;
+  // Header names come from Settings. undefined means the caller passed
+  // no config, so the opencode defaults stand. "" disables the header.
+  const sessionName =
+    config.sessionHeader === undefined
+      ? "x-opencode-session"
+      : config.sessionHeader;
+  const requestName =
+    config.requestHeader === undefined
+      ? "x-opencode-request"
+      : config.requestHeader;
 
   const fullBody = {
     model,
@@ -148,8 +174,9 @@ async function chat(
     "Content-Type": "application/json",
     Authorization: `Bearer ${apiKey}`,
     "User-Agent": "GOLEM/1.0",
-    ...(sessionId ? { "x-opencode-session": sessionId } : {}),
-    ...(requestId ? { "x-opencode-request": requestId } : {}),
+    ...(sessionName ? { [sessionName]: sessionId } : {}),
+    ...(requestName ? { [requestName]: requestId } : {}),
+    ...parseExtraHeaders(config.extraHeaders),
   };
 
   let response = null;

@@ -34,6 +34,33 @@
             </button>
           </div>
         </div>
+        <div class="settings-group">
+          <label class="settings-label">Session header (empty = off)</label>
+          <input
+            v-model="sessionHeader"
+            type="text"
+            class="settings-input"
+            placeholder="x-opencode-session"
+          />
+        </div>
+        <div class="settings-group">
+          <label class="settings-label">Request header (empty = off)</label>
+          <input
+            v-model="requestHeader"
+            type="text"
+            class="settings-input"
+            placeholder="x-opencode-request"
+          />
+        </div>
+        <div class="settings-group">
+          <label class="settings-label">Extra headers (Name: value per line)</label>
+          <textarea
+            v-model="extraHeaders"
+            class="settings-input"
+            rows="3"
+            placeholder="X-Custom-Header: some-value"
+          ></textarea>
+        </div>
         <div class="settings-test-row">
           <button class="settings-test-btn" @click="testConnection" :disabled="testing">
             {{ testing ? "Testing..." : "Test Connection" }}
@@ -62,6 +89,9 @@ const emit = defineEmits(["close", "saved"]);
 
 const host = ref("");
 const apiKey = ref("");
+const sessionHeader = ref("x-opencode-session");
+const requestHeader = ref("x-opencode-request");
+const extraHeaders = ref("");
 const showApiKey = ref(false);
 const testing = ref(false);
 const testResult = ref("");
@@ -74,6 +104,9 @@ watch(
       const config = getProviderConfig();
       host.value = config.host;
       apiKey.value = config.apiKey;
+      sessionHeader.value = config.sessionHeader;
+      requestHeader.value = config.requestHeader;
+      extraHeaders.value = config.extraHeaders;
       testResult.value = "";
       testResultClass.value = "";
     }
@@ -109,7 +142,13 @@ async function testConnection() {
 }
 
 function save() {
-  saveProviderConfig(host.value, apiKey.value);
+  saveProviderConfig(
+    host.value,
+    apiKey.value,
+    sessionHeader.value,
+    requestHeader.value,
+    extraHeaders.value,
+  );
   emit("saved");
   emit("close");
 }
