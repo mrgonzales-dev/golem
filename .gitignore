@@ -15,3 +15,4 @@ config/api_key.json
 test/tmp-registry/
 test/tmp-reads/
 test/tmp-prompts/
+plans/
