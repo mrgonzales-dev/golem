@@ -24,7 +24,7 @@ describe("readFile tool", () => {
     const content = readFile({ filePath: tmpFile });
     console.log("[test] File content:", JSON.stringify(content));
     console.log("[test] Content length:", content.length, "chars");
-    expect(content).toBe("hello world");
+    expect(content).toBe(`${tmpFile} — lines 1-1 of 1\n1\thello world`);
     console.log("[test] PASS: content matches expected 'hello world'");
   });
 

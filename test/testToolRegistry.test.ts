@@ -33,7 +33,7 @@ describe("Tool registry", () => {
 
     // Read the actual file
     const result = toolFunctions.readFile({ filePath: tmpFile });
-    expect(result).toBe("registry test content");
+    expect(result).toBe(`${tmpFile} — lines 1-1 of 1\n1\tregistry test content`);
 
     fs.unlinkSync(tmpFile);
     fs.rmSync(tmpDir, { recursive: true });

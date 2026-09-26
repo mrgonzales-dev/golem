@@ -72,7 +72,8 @@ describe("prompts project map", () => {
     expect(text).toContain("Top level:\n- src/");
     expect(text).toContain("Toolchain:\n- Package manager: pnpm.");
     expect(text).toContain("README.md (project rules; follow them):");
-    expect(text).not.toContain("Git status:");
+    // tmpDir sits inside the repo, so git status resolves the parent.
+    expect(text).toContain("Git status:");
   });
 
   test("buildSystemPrompt places the map before the reasoning rules", () => {
