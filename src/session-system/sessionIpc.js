@@ -14,6 +14,7 @@
 const sessionStore = require("./sessionStore");
 const agent = require("../ipc/components/agent");
 const pendingChanges = require("../diff-system/pendingChanges");
+const { prStore } = require("../plan-pr-system");
 const { serializeReads, restoreReads, readsFromHistory } = require("../tools");
 
 const handlers = [
@@ -33,6 +34,7 @@ const handlers = [
         plan: snap.plan,
         reads: serializeReads(),
         pendingChanges: pendingChanges.serialize(),
+        prs: prStore.serialize(),
       });
     },
   },
@@ -43,6 +45,7 @@ const handlers = [
       if (!session) return { ok: true, session: null };
       agent.restore(session);
       pendingChanges.restore(session.pendingChanges || []);
+      prStore.restore(session.prs || []);
       // Older session files predate the reads snapshot. Rebuild the
       // tracker from the readFile calls in the history so updateFile
       // does not contradict what the model remembers.
@@ -68,6 +71,8 @@ const handlers = [
               ...card,
             }),
           ),
+          // List summaries — same shape the agent:pr event emits.
+          prs: prStore.list(),
         },
       };
     },

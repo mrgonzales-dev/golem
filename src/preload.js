@@ -85,6 +85,14 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("settings:test", { host, apiKey }),
   saveSession: (payload) => ipcRenderer.invoke("session:save", payload),
   loadLatestSession: () => ipcRenderer.invoke("session:latest"),
+  prList: () => ipcRenderer.invoke("pr:list"),
+  prRemove: (id) => ipcRenderer.invoke("pr:remove", id),
+  prSetStatus: (id, status) => ipcRenderer.invoke("pr:status", { id, status }),
+  onPr: (callback) => {
+    const listener = (_e, data) => callback(data);
+    ipcRenderer.on("agent:pr", listener);
+    return () => ipcRenderer.removeListener("agent:pr", listener);
+  },
   terminalCreate: (id, opts) => ipcRenderer.invoke("terminal:create", { id, ...opts }),
   terminalWrite: (id, data) => ipcRenderer.invoke("terminal:write", { id, data }),
   terminalResize: (id, cols, rows) => ipcRenderer.invoke("terminal:resize", { id, cols, rows }),

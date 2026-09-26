@@ -8,6 +8,7 @@
  *   - pushError(text)    Add an error line to the chat.
  *   - openSettings()     Open the settings modal.
  *   - clearChat()        Empty the message list.
+ *   - togglePlanMode()   Switch plan mode on or off.
  *
  * Add a command by adding an entry to the commands map.
  */
@@ -28,6 +29,15 @@ export const commands = {
   "/clear": {
     description: "Clear the chat",
     run: (ctx) => ctx.clearChat(),
+  },
+  "/plan": {
+    description: "Toggle plan mode",
+    run: (ctx) => {
+      if (!ctx.togglePlanMode) {
+        return ctx.pushMessage("Plan mode is not available here.");
+      }
+      ctx.togglePlanMode();
+    },
   },
 };
 

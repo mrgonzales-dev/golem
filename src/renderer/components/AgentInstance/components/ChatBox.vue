@@ -77,6 +77,7 @@
       @sendQueue="$emit('sendQueue')"
       @interrupt="$emit('interrupt')"
     />
+    <PlanBar :planMode="planMode" @createPr="$emit('createPr')" />
   </div>
 </template>
 
@@ -89,6 +90,7 @@ import ReasoningLine from "./agentReply/ReasoningLine.vue";
 import AgentToolCall from "./agentReply/AgentToolCall.vue";
 import AgentError from "./agentReply/AgentError.vue";
 import QueueBar from "./QueueBar.vue";
+import PlanBar from "./PlanBar.vue";
 import DiffCard from "./diffPanel/DiffCard.vue";
 import TasksPane from "./tasksPane/TasksPane.vue";
 
@@ -97,6 +99,7 @@ const props = defineProps({
   queue: { type: Array, default: () => [] },
   isResponding: { type: Boolean, default: false },
   plan: { type: Array, default: () => [] },
+  planMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -105,6 +108,7 @@ const emit = defineEmits([
   "focusInput",
   "taskClick",
   "clearPlan",
+  "createPr",
 ]);
 
 // Focus the input on click, but leave text selection and clicks on

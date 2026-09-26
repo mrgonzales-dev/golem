@@ -20,9 +20,12 @@
       v-model:selectedModel="selectedModel"
       :diffOpen="diffOpen"
       :pendingCount="pendingCount"
+      :prsOpen="prOpen"
+      :prCount="prs.length"
       :contextUsed="contextTokens"
       :contextMax="contextMax"
       @toggleDiff="emit('update:diffOpen', !diffOpen)"
+      @togglePrs="togglePrs"
     />
     <div class="chat-row">
       <TerminalPanel
@@ -48,6 +51,15 @@
         :changes="pendingChanges"
         @decideAll="emit('decideAll', $event)"
       />
+      <PrPage
+        v-else-if="prOpen"
+        class="pr-pane"
+        :prs="prs"
+        @close="prOpen = false"
+        @implement="implementPr"
+        @send="sendPrToAgent"
+        @remove="removePr"
+      />
       <ChatBox
         v-else
         class="chat-pane"
@@ -55,6 +67,8 @@
         :queue="queue"
         :isResponding="isResponding"
         :plan="plan"
+        :planMode="planMode"
+        @createPr="createPrNow"
         @sendQueue="flushQueue"
         @focusInput="messageInput?.focus()"
         @taskClick="onTaskClick"
@@ -87,6 +101,7 @@ import TerminalPanel from "../Terminal/TerminalPanel.vue";
 import DiffBox from "./components/diffPanel/DiffBox.vue";
 import MessageInput from "./components/MessageInput.vue";
 import CodeViewer from "./components/filePane/CodeViewer.vue";
+import PrPage from "./components/prPanel/PrPage.vue";
 import QuickPromptActionToolBar from "./components/QuickPromptActionToolBar.vue";
 import { applyToolCall } from "./partials/toolCalls";
 import { shouldFlush, dequeue, handleSend as queueSend } from "./partials/agentQueue";
@@ -130,6 +145,13 @@ const plan = ref([]);
 // The turn in flight, so events that arrive outside sendMessage
 // (change cards) can insert above the live thinking slot.
 let activeTurn = null;
+// Pull request summaries, fed by the agent:pr event and refreshed
+// from main each time the page opens.
+const prs = ref([]);
+const prOpen = ref(false);
+// Plan mode sends only read-only tools plus proposePullRequest to the
+// model. /plan toggles it; a created pull request ends it.
+const planMode = ref(false);
 // Restored from localStorage; validated against the fetched model
 // list in the watcher below so a stale name falls back to models[0].
 const selectedModel = ref(localStorage.getItem("selectedModel") || "");
@@ -186,6 +208,14 @@ function handleSend(text) {
       pushError,
       openSettings: () => emit("openSettings"),
       clearChat: () => (messages.value = []),
+      togglePlanMode: () => {
+        planMode.value = !planMode.value;
+        pushNotice(
+          planMode.value
+            ? "Plan mode on. The agent asks questions and cannot write files. Type /plan to exit."
+            : "Plan mode off.",
+        );
+      },
     });
     return;
   }
@@ -225,6 +255,7 @@ function restoreSession(session) {
   if (session.selectedModel) selectedModel.value = session.selectedModel;
   if (session.thinkingEffort) thinkingEffort.value = session.thinkingEffort;
   plan.value = Array.isArray(session.plan) ? session.plan : [];
+  prs.value = Array.isArray(session.prs) ? session.prs : [];
 }
 
 // A clicked task becomes a blue chip in the input so the user can
@@ -261,6 +292,56 @@ function requestSave() {
     selectedModel: selectedModel.value,
     thinkingEffort: thinkingEffort.value,
   }));
+}
+
+async function togglePrs() {
+  prOpen.value = !prOpen.value;
+  if (prOpen.value) {
+    // The pane chain shows one view at a time — close the others.
+    emit("update:diffOpen", false);
+    emit("update:viewingFile", "");
+  }
+  if (prOpen.value && window.api.prList) {
+    const res = await window.api.prList();
+    if (res?.ok) prs.value = res.prs;
+  }
+}
+
+// Implement hands the plan back to the agent as a work order. The
+// normal write tools turn it into pending changes for review.
+function implementPr(id) {
+  const pr = prs.value.find((p) => p.id === id);
+  if (!pr) return;
+  sendSystemMessage(
+    `Implement pull request ${id} "${pr.title}". ${pr.description} Produce the file changes as proposals now.`,
+  );
+  window.api.prSetStatus?.(id, "implemented");
+  prs.value = prs.value.map((p) =>
+    p.id === id ? { ...p, status: "implemented" } : p,
+  );
+}
+
+// Send to Agent re-opens the plan for revision. The model updates the
+// same pull request through proposePullRequest's prId parameter.
+function sendPrToAgent(id) {
+  const pr = prs.value.find((p) => p.id === id);
+  if (!pr) return;
+  sendSystemMessage(
+    `Revise pull request ${id} "${pr.title}". Ask me what to change, then update it with the proposePullRequest tool using prId "${id}".`,
+  );
+}
+
+async function removePr(id) {
+  await window.api.prRemove?.(id);
+  prs.value = prs.value.filter((p) => p.id !== id);
+}
+
+// The Create Pull Request button tells the agent to stage the plan;
+// the proposePullRequest tool does the real work.
+function createPrNow() {
+  sendSystemMessage(
+    "The plan is ready. Create the pull request now with the proposePullRequest tool.",
+  );
 }
 
 defineExpose({ sendSystemMessage, pushNotice, restoreSession, requestSave });
@@ -355,7 +436,7 @@ async function sendMessage(text, sender = "You") {
       apiKey,
       thinkingEffort.value,
       knownMax,
-      { sessionHeader, requestHeader, extraHeaders },
+      { sessionHeader, requestHeader, extraHeaders, planMode: planMode.value },
     );
     if (result.ok) {
       messages.value[turn.thinkingId] = { sender: "AI", text: result.reply };
@@ -429,6 +510,18 @@ onMounted(() => {
       requestSave();
     });
   }
+  if (window.api.onPr) {
+    window.api.onPr((pr) => {
+      // Same event covers create and revise — upsert on id.
+      const known = prs.value.some((p) => p.id === pr.id);
+      prs.value = known
+        ? prs.value.map((p) => (p.id === pr.id ? { ...p, ...pr } : p))
+        : [pr, ...prs.value];
+      // A created pull request ends plan mode on its own.
+      planMode.value = false;
+      requestSave();
+    });
+  }
 });
 
 watch(
@@ -460,6 +553,7 @@ watch(
 .chat-pane,
 .diff-pane,
 .file-pane,
+.pr-pane,
 .terminal-pane {
   flex: 1;
   min-width: 0;

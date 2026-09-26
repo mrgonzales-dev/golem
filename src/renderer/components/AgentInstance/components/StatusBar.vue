@@ -45,14 +45,24 @@
         {{ formatTokens(contextUsed) }} / {{ formatTokens(contextMax) }}
       </span>
     </div>
-    <button
-      class="view-changes-btn"
-      :class="{ active: diffOpen, 'has-pending': pendingCount > 0 }"
-      @click="$emit('toggleDiff')"
-    >
-      {{ diffOpen ? "Hide Diff" : "Diff" }}
-      <span v-if="pendingCount > 0" class="pending-badge">{{ pendingCount }}</span>
-    </button>
+    <div class="status-right">
+      <button
+        class="view-changes-btn"
+        :class="{ active: prsOpen }"
+        @click="$emit('togglePrs')"
+      >
+        PRs
+        <span v-if="prCount > 0" class="pending-badge">{{ prCount }}</span>
+      </button>
+      <button
+        class="view-changes-btn"
+        :class="{ active: diffOpen, 'has-pending': pendingCount > 0 }"
+        @click="$emit('toggleDiff')"
+      >
+        {{ diffOpen ? "Hide Diff" : "Diff" }}
+        <span v-if="pendingCount > 0" class="pending-badge">{{ pendingCount }}</span>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -65,11 +75,13 @@ const props = defineProps({
   selectedModel: { type: String, default: "" },
   diffOpen: { type: Boolean, default: false },
   pendingCount: { type: Number, default: 0 },
+  prsOpen: { type: Boolean, default: false },
+  prCount: { type: Number, default: 0 },
   contextUsed: { type: Number, default: 0 },
   contextMax: { type: Number, default: null },
 });
 
-const emit = defineEmits(["update:selectedModel", "toggleDiff"]);
+const emit = defineEmits(["update:selectedModel", "toggleDiff", "togglePrs"]);
 
 // Context meter: prompt_tokens of the last request against the
 // model's context window reported by the provider.
@@ -213,8 +225,14 @@ function scrollActiveIntoView() {
   flex-shrink: 0;
 }
 
-.view-changes-btn {
+.status-right {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-changes-btn {
   flex-shrink: 0;
   padding: 2px 8px;
   font-size: 11px;

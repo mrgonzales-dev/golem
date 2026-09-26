@@ -21,6 +21,7 @@ const thinkingTexts = require("@/thinking-texts");
 const { buildSystemPrompt } = require("@/prompts");
 const pendingChanges = require("@/diff-system/pendingChanges");
 const compaction = require("@/context-system/compaction");
+const { prStore } = require("@/plan-pr-system");
 const { RepeatGuard } = require("./repeatGuard");
 const { randomUUID } = require("crypto");
 
@@ -90,7 +91,7 @@ class AgentSession {
 
   async handle(
     event,
-    { message, model, folderPath, host, apiKey, effort, contextMax, sessionHeader, requestHeader, extraHeaders },
+    { message, model, folderPath, host, apiKey, effort, contextMax, sessionHeader, requestHeader, extraHeaders, planMode },
   ) {
     if (!host) {
       return {
@@ -156,6 +157,30 @@ class AgentSession {
       setPlan: (steps) => {
         this.plan = steps;
         send("agent:plan", { steps });
+      },
+      // Plan mode tool: stages or revises a pull request and emits its
+      // card to the renderer. Nothing is implemented here — the user
+      // decides on the Pull Requests page.
+      proposePr: ({ title, description, prId }) => {
+        if (prId && prStore.get(prId)) {
+          prStore.update(prId, { title, description });
+          const pr = prStore.get(prId);
+          send("agent:pr", {
+            id: prId,
+            title: pr.title,
+            description: pr.description,
+            status: pr.status,
+          });
+          return prId;
+        }
+        const id = prStore.propose({ title, description });
+        send("agent:pr", {
+          id,
+          title: String(title).trim(),
+          description,
+          status: "open",
+        });
+        return id;
       },
       signal,
     };
@@ -229,9 +254,10 @@ class AgentSession {
     };
 
     try {
-      // System prompt: rebuild when folderPath changes
+      // System prompt: rebuild when folderPath or plan mode changes
       const currentFolderPath = folderPath || "";
-      if (this.lastFolderPath !== currentFolderPath) {
+      const wantPlanMode = !!planMode;
+      if (this.lastFolderPath !== currentFolderPath || this.lastPlanMode !== wantPlanMode) {
         // Remove old system prompt if it exists
         if (this.history.length > 0 && this.history[0].role === "system") {
           this.history.shift();
@@ -239,9 +265,10 @@ class AgentSession {
 
         this.history.unshift({
           role: "system",
-          content: buildSystemPrompt(folderPath || ""),
+          content: buildSystemPrompt(currentFolderPath, { planMode: wantPlanMode }),
         });
         this.lastFolderPath = currentFolderPath;
+        this.lastPlanMode = wantPlanMode;
       }
 
       // Add user message to history
@@ -249,8 +276,14 @@ class AgentSession {
 
       sendThinking(currentThinkingText);
 
+      // Plan mode offers read-only tools plus proposePullRequest;
+      // write tools and runCommand stay out of the request.
+      const defs = planMode
+        ? toolDefinitions.filter((t) => readOnlyTools.has(t.function.name))
+        : toolDefinitions;
+
       // First AI call
-      let reply = await callModel(toolDefinitions);
+      let reply = await callModel(defs);
 
       // Tool-call loop: execute tools, feed results back to AI.
       // Guardrails: hard step limit, and an advisory-then-trip guard on
@@ -378,7 +411,7 @@ class AgentSession {
         // Send tool results back to AI
         currentThinkingText = randomThinkingText();
         sendThinking(currentThinkingText);
-        reply = await callModel(toolDefinitions);
+        reply = await callModel(defs);
       }
 
       // On a halted loop, give the model one tool-less call to turn

@@ -14,6 +14,7 @@ const write = require("./write");
 const command = require("./command");
 const plan = require("./plan");
 const skills = require("./skills");
+const pullRequest = require("./pullRequest");
 
 // Tool definitions sent to the AI. invokeSkill joins only when at
 // least one skill exists.
@@ -23,6 +24,7 @@ const toolDefinitions = [
   ...write.definitions,
   ...command.definitions,
   ...plan.definitions,
+  ...pullRequest.definitions,
   ...(skills.hasSkills() ? skills.definitions : []),
 ];
 
@@ -36,6 +38,7 @@ const toolFunctions = {
   writeFile: write.writeFile,
   runCommand: command.runCommand,
   updatePlan: plan.updatePlan,
+  proposePullRequest: pullRequest.proposePullRequest,
   invokeSkill: skills.invokeSkill,
 };
 
@@ -48,6 +51,7 @@ const readOnlyTools = new Set([
   "listDirectory",
   "invokeSkill",
   "updatePlan",
+  "proposePullRequest",
 ]);
 
 module.exports = {

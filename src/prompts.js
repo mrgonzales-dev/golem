@@ -13,6 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { listSkillNames } = require("@/tools");
+const { planModeSection } = require("@/plan-pr-system/prompt");
 
 // Caps for the project map. The map must stay a small fixed cost per
 // session, not a second copy of the repo.
@@ -175,12 +176,16 @@ function reasoningSection() {
   ].join("\n");
 }
 
-function toolsSection() {
+function toolsSection(planMode) {
   const skills = listSkillNames();
+  // The list mirrors the gated set: plan mode drops the write tools
+  // and runCommand, keeping read tools plus proposePullRequest.
+  const toolNames = planMode
+    ? "readFile, fileSearch, fileGrep, listDirectory, proposePullRequest, updatePlan"
+    : "readFile, fileSearch, fileGrep, listDirectory, updateFile, writeFile, runCommand, proposePullRequest, updatePlan";
   const lines = [
     "## Tools",
-    "- Tools: readFile, fileSearch, fileGrep, listDirectory, updateFile, writeFile, runCommand, updatePlan" +
-      (skills.length ? ", invokeSkill." : "."),
+    "- Tools: " + toolNames + (skills.length ? ", invokeSkill." : "."),
     "- Write your one-line reason and the tool calls in the same response. Never stop to wait.",
     "- Batch independent tool calls in one response. Read-only calls in one batch run concurrently.",
     "- Prefer dedicated tools over runCommand shell equivalents (readFile over cat, fileGrep over grep, fileSearch over find).",
@@ -230,13 +235,14 @@ function outputSection() {
   ].join("\n");
 }
 
-function buildSystemPrompt(folderPath) {
+function buildSystemPrompt(folderPath, { planMode } = {}) {
   return [
     introSection(),
     environmentSection(folderPath),
     projectSection(folderPath),
+    planMode ? planModeSection() : "",
     reasoningSection(),
-    toolsSection(),
+    toolsSection(planMode),
     editRulesSection(),
     doingTasksSection(),
     outputSection(),
