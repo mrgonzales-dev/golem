@@ -82,8 +82,4 @@ const handlers = [
   },
 ];
 
-function killAllTerminals() {
-  manager.killAll();
-}
-
-module.exports = { handlers, killAllTerminals, manager };
+module.exports = { handlers };

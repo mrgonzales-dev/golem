@@ -83,10 +83,6 @@ function createPtyManager({ spawn } = {}) {
     if (s.pty.kill) s.pty.kill();
   }
 
-  function killAll() {
-    for (const id of [...sessions.keys()]) kill(id);
-  }
-
   function get(id) {
     return sessions.get(id) || null;
   }
@@ -113,7 +109,7 @@ function createPtyManager({ spawn } = {}) {
     for (const fn of s.dataHandlers) fn(data);
   }
 
-  return { create, write, resize, kill, killAll, get, list, onData, onExit, emitForTest };
+  return { create, write, resize, kill, get, list, onData, onExit, emitForTest };
 }
 
 module.exports = { createPtyManager };

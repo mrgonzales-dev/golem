@@ -45,13 +45,6 @@ export function attachTerminal(entry, container) {
   });
 }
 
-export function fitTerminal(ptyId) {
-  const entry = pool.get(ptyId);
-  if (!entry || !entry.opened) return;
-  entry.fit.fit();
-  window.api?.terminalResize?.(ptyId, entry.term.cols, entry.term.rows);
-}
-
 export function writeToTerminal(ptyId, data) {
   pool.get(ptyId)?.term.write(data);
 }
@@ -66,8 +59,4 @@ export function disposeTerminal(ptyId) {
   }
   entry.host.remove();
   pool.delete(ptyId);
-}
-
-export function poolSize() {
-  return pool.size;
 }
