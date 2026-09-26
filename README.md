@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="readme_src/GOLEM_BANNER.png" alt="GOLEM banner" width="100%">
+</p>
+
 # GOLEM
 
 AI coding agent. Proposes file changes as diffs and writes them only after approval. Reads files, searches code, and fetches context.
