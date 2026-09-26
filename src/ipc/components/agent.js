@@ -425,7 +425,6 @@ module.exports = {
   name: "agent",
   handler: (event, args) => defaultSession.handle(event, args),
   interrupt: () => defaultSession.interrupt(),
-  clearHistory: () => defaultSession.clearHistory(),
   note: (text) => defaultSession.note(text),
   clearPlan: () => defaultSession.clearPlan(),
   snapshot: () => defaultSession.snapshot(),

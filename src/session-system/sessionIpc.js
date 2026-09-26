@@ -73,23 +73,6 @@ const handlers = [
     },
   },
   {
-    name: "session:list",
-    handler: () => sessionStore.listSessions(),
-  },
-  {
-    name: "session:new",
-    handler: () => {
-      agent.clearHistory();
-      pendingChanges.rejectAll();
-      restoreReads([]);
-      return { ok: true, sessionId: agent.snapshot().sessionId };
-    },
-  },
-  {
-    name: "session:delete",
-    handler: (_event, id) => ({ ok: sessionStore.deleteSession(id) }),
-  },
-  {
     name: "agent:plan:clear",
     handler: () => {
       agent.clearPlan();
